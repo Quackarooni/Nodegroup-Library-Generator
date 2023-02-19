@@ -32,14 +32,17 @@ class NODE_MT_nodegroup_library(bpy.types.Menu):
     def draw(self, context):
         pass
 
-def generate_menu(filepath, menu_name, data, nodegroups):
+def generate_idname(menu_name, blendname):
+    return f"NODEGROUP_LIBRARY_MT_{blendname}_{menu_name}"
+
+def generate_menu(filepath, blendname, menu_name, data, nodegroups):
     def draw(self, context):
         layout = self.layout
         submenus = self.items['submenus']
         nodegroup_items = self.items['nodegroups']
 
         for menu in submenus:
-            submenu_idname = f"NODEGROUP_LIBRARY_MT_{menu}"
+            submenu_idname = generate_idname(menu, blendname)
             layout.menu(submenu_idname)
 
         if submenus and nodegroup_items:
@@ -58,7 +61,7 @@ def generate_menu(filepath, menu_name, data, nodegroups):
 
         return
     
-    idname = f"NODEGROUP_LIBRARY_MT_{menu_name}"
+    idname = generate_idname(menu_name, blendname)
 
     menu_class = type(idname,(bpy.types.Menu,),
         {
@@ -80,9 +83,10 @@ def make_menus(config):
         config_dict = json.loads(f.read())
 
     filepath = config_dict['filepath']
+    blendname = config.name.removesuffix('.json').replace(" ", "_").upper()
 
     for key, value in config_dict['menus'].items():
-        generate_menu(filepath=filepath, menu_name=key, data=value, nodegroups=config_dict['nodegroups'])
+        generate_menu(filepath=filepath, blendname=blendname, menu_name=key, data=value, nodegroups=config_dict['nodegroups'])
 
 def register():
     menu_classes.clear()
