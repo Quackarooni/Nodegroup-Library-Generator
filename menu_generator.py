@@ -111,7 +111,6 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus):
             "is_expandable": data['is_expandable'],
             "items": data['items'],
             "draw": draw,
-            "draw_compact" : draw_compact
         }
     )
 
