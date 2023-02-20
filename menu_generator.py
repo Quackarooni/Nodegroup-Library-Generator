@@ -35,8 +35,8 @@ class NODE_MT_nodegroup_library(bpy.types.Menu):
 def generate_idname(menu_name, blendname):
     return f"NODEGROUP_LIBRARY_MT_{blendname}_{menu_name}"
 
-def generate_menu(filepath, blendname, menu_name, data, nodegroups):
-    def draw(self, context):
+def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus):
+    def draw_compact(self, context):
         layout = self.layout
         submenus = self.items['submenus']
         nodegroup_items = self.items['nodegroups']
@@ -58,7 +58,48 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups):
             props.filepath = filepath
             props.group_name = nodetree_name
             props.width = nodegroup_data['width']
+    
+    def draw_expanded(self, context):
+        layout = self.layout
+        submenus = self.items['submenus']
+        nodegroup_items = self.items['nodegroups']
 
+        row = layout.row()
+        for menu in submenus:
+            submenu_data = menus[menu]
+            label = submenu_data['label']
+
+            submenu_idname = generate_idname(menu, blendname)
+            col = row.column()
+            col.label(text=label)
+            col.separator(factor=1)
+            col.menu_contents(submenu_idname)
+
+        if not nodegroup_items:
+            return
+
+        col = row.column()
+        if submenus:
+            col.label(text="Misc.")
+            col.separator(factor=1)
+
+        for nodegroup in nodegroup_items:
+            nodegroup_data = nodegroups[nodegroup]
+            label = nodegroup_data['label']
+            nodetree_name = nodegroup_data['node_tree']
+            label = label if label != '' else nodetree_name
+            
+            props = col.operator(append_nodegroup.bl_idname, text=label)
+            props.filepath = filepath
+            props.group_name = nodetree_name
+            props.width = nodegroup_data['width']
+        
+
+    def draw(self, context):
+        if self.is_expandable:
+            draw_expanded(self, context)
+        else:
+            draw_compact(self, context)
         return
     
     idname = generate_idname(menu_name, blendname)
@@ -67,8 +108,10 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups):
         {
             "bl_idname": idname,
             "bl_label": data['label'],
+            "is_expandable": data['is_expandable'],
             "items": data['items'],
             "draw": draw,
+            "draw_compact" : draw_compact
         }
     )
 
@@ -86,7 +129,7 @@ def make_menus(config):
     blendname = config.name.removesuffix('.json').replace(" ", "_").upper()
 
     for key, value in config_dict['menus'].items():
-        generate_menu(filepath=filepath, blendname=blendname, menu_name=key, data=value, nodegroups=config_dict['nodegroups'])
+        generate_menu(filepath=filepath, blendname=blendname, menu_name=key, data=value, nodegroups=config_dict['nodegroups'], menus=config_dict['menus'])
 
 def register():
     menu_classes.clear()
