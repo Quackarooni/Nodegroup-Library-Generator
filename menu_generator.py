@@ -20,6 +20,7 @@ def draw_library_menu(self, context):
     if fetch_user_prefs("bool_prop"):
         self.layout.menu("NODE_MT_nodegroup_library", icon='ASSET_MANAGER')
     else:
+        self.layout.separator(factor=1)
         self.layout.menu_contents("NODE_MT_nodegroup_library")
 
 
