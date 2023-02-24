@@ -10,8 +10,18 @@ parent_menus = []
 menu_classes = []
 menu_draw_funcs = []
 
+def fetch_user_prefs(prop_name=None):
+    ADD_ON_PATH = Path(__file__).parent.name
+    prefs = bpy.context.preferences.addons[ADD_ON_PATH].preferences
+
+    return prefs if (prop_name is None) else getattr(prefs, prop_name)
+
 def draw_library_menu(self, context):
-    self.layout.menu("NODE_MT_nodegroup_library", icon='ASSET_MANAGER')
+    if fetch_user_prefs("bool_prop"):
+        self.layout.menu("NODE_MT_nodegroup_library", icon='ASSET_MANAGER')
+    else:
+        self.layout.menu_contents("NODE_MT_nodegroup_library")
+
 
 def append_submenu_to_parent(menu):
     def draw(self, context):
