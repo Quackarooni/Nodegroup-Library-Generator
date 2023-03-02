@@ -17,9 +17,9 @@ def fetch_user_prefs(prop_name=None):
 
     return prefs if (prop_name is None) else getattr(prefs, prop_name)
 
-def append_submenu_to_parent(menu):
+def append_submenu_to_parent(menu, icon):
     def draw(self, context):
-        self.layout.menu(menu.bl_idname)
+        self.layout.menu(menu.bl_idname, icon=icon)
         
     menu_draw_funcs.append(draw)
     bpy.types.NODE_MT_nodegroup_library.append(draw)
@@ -71,8 +71,9 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus, tree_
         nodegroup_items = self.items['nodegroups']
 
         for menu in submenus:
+            icon = menus[menu].get('icon', 'NONE')
             submenu_idname = generate_idname(menu, blendname)
-            layout.menu(submenu_idname)
+            layout.menu(submenu_idname, icon=icon)
 
         if submenus and nodegroup_items:
             layout.separator(factor=1)
@@ -97,10 +98,11 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus, tree_
         for menu in submenus:
             submenu_data = menus[menu]
             label = submenu_data['label']
+            icon = submenu_data.get('icon', 'NONE')
 
             submenu_idname = generate_idname(menu, blendname)
             col = row.column()
-            col.label(text=label)
+            col.label(text=label, icon=icon)
             col.separator(factor=1)
             col.menu_contents(submenu_idname)
 
@@ -147,7 +149,7 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus, tree_
     bpy.utils.register_class(menu_class)
 
     if menu_name.endswith('main'):
-        append_submenu_to_parent(menu_class)
+        append_submenu_to_parent(menu_class, icon=data.get('icon', 'NONE'))
 
 def make_menus(config):
     with open(config, "r") as f:
