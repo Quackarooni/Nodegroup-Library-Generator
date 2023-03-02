@@ -4,17 +4,15 @@ from bpy.types import Operator
 from bpy.props import StringProperty, FloatProperty
 from pathlib import Path
 
-class NodegroupLibraryBase:
-    bl_label = "Base Operator"
-    bl_options = {'REGISTER', 'UNDO_GROUPED'} 
+class NodegroupLibrary_BaseMenu(bpy.types.Menu):
+    tree_type: StringProperty()
 
     @classmethod
     def poll(cls, context):
         space = context.space_data
-        valid_trees = ("ShaderNodeTree", "CompositorNodeTree", "TextureNodeTree", "GeometryNodeTree")
         is_node_editor = (space.type == 'NODE_EDITOR')
         is_exists = (space.node_tree is not None)
-        is_valid = (space.tree_type in valid_trees)
+        is_valid = space.tree_type == cls.tree_type
         return all((is_node_editor, is_exists, is_valid))
 
 class NODE_OT_NODEGROUP_LIBRARY_append_group(Operator):
@@ -35,7 +33,7 @@ class NODE_OT_NODEGROUP_LIBRARY_append_group(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.space_data.tree_type == "GeometryNodeTree"
+        return context.space_data.type == 'NODE_EDITOR'
 
     @classmethod
     def description(self, context, props):

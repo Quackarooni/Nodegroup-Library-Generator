@@ -2,6 +2,7 @@ import bpy
 from pathlib import Path
 import json
 from .operators import NODE_OT_NODEGROUP_LIBRARY_append_group as append_nodegroup
+from .operators import NodegroupLibrary_BaseMenu as NGL_BaseMenu
 
 config_folder = Path(__file__).parent / "menu_configs"
 config_files = list(config_folder.glob("*.json"))
@@ -16,14 +17,6 @@ def fetch_user_prefs(prop_name=None):
 
     return prefs if (prop_name is None) else getattr(prefs, prop_name)
 
-def draw_library_menu(self, context):
-    if fetch_user_prefs("bool_prop"):
-        self.layout.menu("NODE_MT_nodegroup_library", icon='ASSET_MANAGER')
-    else:
-        self.layout.separator(factor=1)
-        self.layout.menu_contents("NODE_MT_nodegroup_library")
-
-
 def append_submenu_to_parent(menu):
     def draw(self, context):
         self.layout.menu(menu.bl_idname)
@@ -36,17 +29,42 @@ class NODE_MT_nodegroup_library(bpy.types.Menu):
     bl_label = "User Library"
     bl_idname = "NODE_MT_nodegroup_library"
 
+    valid_nodetrees = []
+
+    @classmethod
+    def set_valid_nodetrees(cls):
+        nodetrees = []
+        for config in config_files:
+            with open(config, "r") as f:
+                config_dict = json.loads(f.read())
+
+            nodetrees += list(config_dict['configs'].keys())
+
+        cls.valid_nodetrees = list(set(nodetrees))
+
     @classmethod
     def poll(cls, context):
-        return context.space_data.tree_type == "GeometryNodeTree"
+        #return True
+        return context.space_data.tree_type in cls.valid_nodetrees
 
     def draw(self, context):
         pass
 
-def generate_idname(menu_name, blendname):
-    return f"NODEGROUP_LIBRARY_MT_{blendname}_{menu_name}"
+def draw_library_menu(self, context):
+    if fetch_user_prefs("bool_prop"):
+        self.layout.menu("NODE_MT_nodegroup_library", icon='ASSET_MANAGER')
+    else:
+        if context.space_data.tree_type in NODE_MT_nodegroup_library.valid_nodetrees:
+            print(NODE_MT_nodegroup_library.valid_nodetrees)
+            self.layout.separator(factor=1)
+            self.layout.menu_contents("NODE_MT_nodegroup_library")
 
-def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus):
+def generate_idname(menu_name, blendname):
+    abbr = "".join(chars[0] for chars in blendname.split("_")[:10])
+    idname = f"NODEGROUP_LIBRARY_MT_{abbr}_{menu_name}"
+    return idname
+
+def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus, tree_type):
     def draw_compact(self, context):
         layout = self.layout
         submenus = self.items['submenus']
@@ -105,7 +123,6 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus):
             props.group_name = nodetree_name
             props.width = nodegroup_data['width']
         
-
     def draw(self, context):
         if self.is_expandable:
             draw_expanded(self, context)
@@ -115,12 +132,13 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus):
     
     idname = generate_idname(menu_name, blendname)
 
-    menu_class = type(idname,(bpy.types.Menu,),
+    menu_class = type(idname,(NGL_BaseMenu,),
         {
             "bl_idname": idname,
             "bl_label": data['label'],
             "is_expandable": data['is_expandable'],
             "items": data['items'],
+            "tree_type": tree_type,
             "draw": draw,
         }
     )
@@ -128,23 +146,26 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus):
     menu_classes.append(menu_class)
     bpy.utils.register_class(menu_class)
 
-    if menu_name == 'main':
+    if menu_name.endswith('main'):
         append_submenu_to_parent(menu_class)
 
 def make_menus(config):
     with open(config, "r") as f:
         config_dict = json.loads(f.read())
-
+    
     filepath = config_dict['filepath']
     blendname = config.name.removesuffix('.json').replace(" ", "_").upper()
 
-    for key, value in config_dict['menus'].items():
-        generate_menu(filepath=filepath, blendname=blendname, menu_name=key, data=value, nodegroups=config_dict['nodegroups'], menus=config_dict['menus'])
+    for tree, data_dict in config_dict['configs'].items():
+        for key, value in data_dict['menus'].items():
+            generate_menu(filepath=filepath, blendname=blendname, menu_name=key, data=value, nodegroups=data_dict['nodegroups'], menus=data_dict['menus'], tree_type=tree)
 
 def register():
     menu_classes.clear()
     menu_draw_funcs.clear()
        
+    NODE_MT_nodegroup_library.set_valid_nodetrees()
+
     if not hasattr(bpy.types, "NODE_MT_nodegroup_library"):
         bpy.utils.register_class(NODE_MT_nodegroup_library)
         bpy.types.NODE_MT_add.append(draw_library_menu)
