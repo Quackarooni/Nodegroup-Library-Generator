@@ -10,6 +10,7 @@ config_files = list(config_folder.glob("*.json"))
 parent_menus = []
 menu_classes = []
 menu_draw_funcs = []
+spacing = 0.65
 
 def fetch_user_prefs(prop_name=None):
     ADD_ON_PATH = Path(__file__).parent.name
@@ -55,28 +56,28 @@ def draw_library_menu(self, context):
         self.layout.menu("NODE_MT_nodegroup_library", icon='ASSET_MANAGER')
     else:
         if context.space_data.tree_type in NODE_MT_nodegroup_library.valid_nodetrees:
-            print(NODE_MT_nodegroup_library.valid_nodetrees)
-            self.layout.separator(factor=1)
+            self.layout.separator(factor=spacing)
             self.layout.menu_contents("NODE_MT_nodegroup_library")
 
-def generate_idname(menu_name, blendname):
-    abbr = "".join(chars[0] for chars in blendname.split("_")[:10])
-    idname = f"NODEGROUP_LIBRARY_MT_{abbr}_{menu_name}"
+def generate_idname(menu_name):
+    idname = f"NODEGROUP_LIBRARY_MT_{menu_name}"
     return idname
 
-def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus, tree_type):
+def generate_menu(filepath, blendname, menu_data, data_dict, tree_type):
     def draw_compact(self, context):
         layout = self.layout
-        submenus = self.items['submenus']
+        submenu_groups = self.items['submenus']
         nodegroup_items = self.items['nodegroups']
 
-        for menu in submenus:
-            icon = menus[menu].get('icon', 'NONE')
-            submenu_idname = generate_idname(menu, blendname)
-            layout.menu(submenu_idname, icon=icon)
+        for group in submenu_groups.values():
+            layout.separator(factor=spacing)
+            for menu in group:                
+                icon = menus[menu].get('icon', 'NONE')
+                submenu_idname = generate_idname(menu)
+                layout.menu(submenu_idname, icon=icon)
 
-        if submenus and nodegroup_items:
-            layout.separator(factor=1)
+        if submenu_groups and nodegroup_items:
+            layout.separator(factor=spacing)
 
         for nodegroup in nodegroup_items:
             nodegroup_data = nodegroups[nodegroup]
@@ -91,28 +92,38 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus, tree_
     
     def draw_expanded(self, context):
         layout = self.layout
-        submenus = self.items['submenus']
+        submenu_groups = self.items['submenus']
         nodegroup_items = self.items['nodegroups']
 
         row = layout.row()
-        for menu in submenus:
-            submenu_data = menus[menu]
-            label = submenu_data['label']
-            icon = submenu_data.get('icon', 'NONE')
+        for group_index, group in submenu_groups.items():
+            if group_index != "null":
+                col = row.column()
 
-            submenu_idname = generate_idname(menu, blendname)
-            col = row.column()
-            col.label(text=label, icon=icon)
-            col.separator(factor=1)
-            col.menu_contents(submenu_idname)
+            for index, menu in enumerate(group):
+
+                submenu_data = menus[menu]
+                label = submenu_data['label']
+                icon = submenu_data.get('icon', 'NONE')
+
+                submenu_idname = generate_idname(menu)
+
+                if group_index == "null":
+                    col = row.column()
+                elif index > 0:
+                    col.separator(factor=spacing)
+                    
+                col.label(text=label, icon=icon)
+                col.separator(factor=spacing)
+                col.menu_contents(submenu_idname)
 
         if not nodegroup_items:
             return
 
         col = row.column()
-        if submenus:
+        if submenu_groups:
             col.label(text="Misc.")
-            col.separator(factor=1)
+            col.separator(factor=spacing)
 
         for nodegroup in nodegroup_items:
             nodegroup_data = nodegroups[nodegroup]
@@ -125,15 +136,10 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus, tree_
             props.group_name = nodetree_name
             props.width = nodegroup_data['width']
         
-    def draw(self, context):
-        if self.is_expandable:
-            draw_expanded(self, context)
-        else:
-            draw_compact(self, context)
-        return
-    
-    idname = generate_idname(menu_name, blendname)
-
+    nodegroups = data_dict['nodegroups']
+    menus = data_dict['menus']
+    menu_name, data = menu_data
+    idname = generate_idname(menu_name)
     menu_class = type(idname,(NGL_BaseMenu,),
         {
             "bl_idname": idname,
@@ -141,7 +147,8 @@ def generate_menu(filepath, blendname, menu_name, data, nodegroups, menus, tree_
             "is_expandable": data['is_expandable'],
             "items": data['items'],
             "tree_type": tree_type,
-            "draw": draw,
+            "draw_expanded": draw_expanded,
+            "draw_compact": draw_compact,
         }
     )
 
@@ -159,8 +166,8 @@ def make_menus(config):
     blendname = config.name.removesuffix('.json').replace(" ", "_").upper()
 
     for tree, data_dict in config_dict['configs'].items():
-        for key, value in data_dict['menus'].items():
-            generate_menu(filepath=filepath, blendname=blendname, menu_name=key, data=value, nodegroups=data_dict['nodegroups'], menus=data_dict['menus'], tree_type=tree)
+        for menu_data in data_dict['menus'].items():
+            generate_menu(filepath=filepath, blendname=blendname, menu_data=menu_data, data_dict=data_dict, tree_type=tree)
 
 def register():
     menu_classes.clear()

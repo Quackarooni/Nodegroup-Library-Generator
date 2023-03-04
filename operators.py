@@ -4,6 +4,12 @@ from bpy.types import Operator
 from bpy.props import StringProperty, FloatProperty
 from pathlib import Path
 
+def fetch_user_prefs(prop_name=None):
+    ADD_ON_PATH = Path(__file__).parent.name
+    prefs = bpy.context.preferences.addons[ADD_ON_PATH].preferences
+
+    return prefs if (prop_name is None) else getattr(prefs, prop_name)
+
 class NodegroupLibrary_BaseMenu(bpy.types.Menu):
     tree_type: StringProperty()
 
@@ -14,6 +20,12 @@ class NodegroupLibrary_BaseMenu(bpy.types.Menu):
         is_exists = (space.node_tree is not None)
         is_valid = space.tree_type == cls.tree_type
         return all((is_node_editor, is_exists, is_valid))
+
+    def draw(self, context):
+        if self.is_expandable and fetch_user_prefs("ui_mode") == 'EXPANDED':
+            self.draw_expanded(context)
+        else:
+            self.draw_compact(context)
 
 class NODE_OT_NODEGROUP_LIBRARY_append_group(Operator):
     bl_idname = "nodegroup_library.append_group"
