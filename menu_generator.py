@@ -7,15 +7,14 @@ from .operators import NodegroupLibrary_BaseMenu as NGL_BaseMenu
 config_folder = Path(__file__).parent / "menu_configs"
 config_files = list(config_folder.glob("*.json"))
 
-parent_menus = []
 menu_classes = []
 menu_draw_funcs = []
 spacing = 0.65
+default_menu_text = "unnamed_menu"
 
 def fetch_user_prefs(prop_name=None):
     ADD_ON_PATH = Path(__file__).parent.name
     prefs = bpy.context.preferences.addons[ADD_ON_PATH].preferences
-
     return prefs if (prop_name is None) else getattr(prefs, prop_name)
 
 def append_submenu_to_parent(menu, icon):
@@ -52,28 +51,27 @@ class NODE_MT_nodegroup_library(bpy.types.Menu):
         pass
 
 def draw_library_menu(self, context):
-    if fetch_user_prefs("bool_prop"):
+    if fetch_user_prefs("enable_parent_menu"):
         self.layout.menu("NODE_MT_nodegroup_library", icon='ASSET_MANAGER')
-    else:
-        if context.space_data.tree_type in NODE_MT_nodegroup_library.valid_nodetrees:
-            self.layout.separator(factor=spacing)
-            self.layout.menu_contents("NODE_MT_nodegroup_library")
+        
+    elif context.space_data.tree_type in NODE_MT_nodegroup_library.valid_nodetrees:
+        self.layout.separator(factor=spacing)
+        self.layout.menu_contents("NODE_MT_nodegroup_library")
 
-def generate_idname(menu_name):
-    idname = f"NODEGROUP_LIBRARY_MT_{menu_name}"
-    return idname
+def generate_menu(filepath, menu_data, data_dict, tree_type):
+    menu_idname, data = menu_data
+    submenu_groups = data['items']['submenus']
+    nodegroup_items = data['items']['nodegroups']
+    nodegroups = data_dict['nodegroups']
+    menus = data_dict['menus']
 
-def generate_menu(filepath, blendname, menu_data, data_dict, tree_type):
     def draw_compact(self, context):
         layout = self.layout
-        submenu_groups = self.items['submenus']
-        nodegroup_items = self.items['nodegroups']
 
         for group in submenu_groups.values():
             layout.separator(factor=spacing)
-            for menu in group:                
-                icon = menus[menu].get('icon', 'NONE')
-                submenu_idname = generate_idname(menu)
+            for submenu_idname in group:       
+                icon = menus[submenu_idname].get('icon', 'NONE')
                 layout.menu(submenu_idname, icon=icon)
 
         if submenu_groups and nodegroup_items:
@@ -85,36 +83,34 @@ def generate_menu(filepath, blendname, menu_data, data_dict, tree_type):
             nodetree_name = nodegroup_data['node_tree']
             label = label if label != '' else nodetree_name
             
-            props = layout.operator(append_nodegroup.bl_idname, text=label)
+            props = layout.operator(append_nodegroup.bl_idname, text=label, icon=nodegroup_data.get("icon", 'NONE'))
             props.filepath = filepath
             props.group_name = nodetree_name
             props.width = nodegroup_data['width']
     
     def draw_expanded(self, context):
         layout = self.layout
-        submenu_groups = self.items['submenus']
-        nodegroup_items = self.items['nodegroups']
 
         row = layout.row()
         for group_index, group in submenu_groups.items():
             if group_index != "null":
                 col = row.column()
 
-            for index, menu in enumerate(group):
-
-                submenu_data = menus[menu]
-                label = submenu_data['label']
-                icon = submenu_data.get('icon', 'NONE')
-
-                submenu_idname = generate_idname(menu)
+            for index, submenu_idname in enumerate(group):
+                submenu_data = menus[submenu_idname]
 
                 if group_index == "null":
                     col = row.column()
                 elif index > 0:
                     col.separator(factor=spacing)
-                    
-                col.label(text=label, icon=icon)
-                col.separator(factor=spacing)
+
+                label = submenu_data['label']
+                icon = submenu_data.get('icon', 'NONE')
+                if label != '' or icon != 'NONE' or not fetch_user_prefs("hide_empty_headers"):
+                    text = label if label != '' else default_menu_text
+                    col.label(text=text, icon=icon)
+                    col.separator(factor=spacing)
+
                 col.menu_contents(submenu_idname)
 
         if not nodegroup_items:
@@ -131,21 +127,16 @@ def generate_menu(filepath, blendname, menu_data, data_dict, tree_type):
             nodetree_name = nodegroup_data['node_tree']
             label = label if label != '' else nodetree_name
             
-            props = col.operator(append_nodegroup.bl_idname, text=label)
+            props = col.operator(append_nodegroup.bl_idname, text=label, icon=nodegroup_data.get("icon", 'NONE'))
             props.filepath = filepath
             props.group_name = nodetree_name
             props.width = nodegroup_data['width']
         
-    nodegroups = data_dict['nodegroups']
-    menus = data_dict['menus']
-    menu_name, data = menu_data
-    idname = generate_idname(menu_name)
-    menu_class = type(idname,(NGL_BaseMenu,),
+    menu_class = type(menu_idname,(NGL_BaseMenu,),
         {
-            "bl_idname": idname,
+            "bl_idname": menu_idname,
             "bl_label": data['label'],
             "is_expandable": data['is_expandable'],
-            "items": data['items'],
             "tree_type": tree_type,
             "draw_expanded": draw_expanded,
             "draw_compact": draw_compact,
@@ -155,7 +146,7 @@ def generate_menu(filepath, blendname, menu_data, data_dict, tree_type):
     menu_classes.append(menu_class)
     bpy.utils.register_class(menu_class)
 
-    if menu_name.endswith('main'):
+    if menu_idname.endswith('main'):
         append_submenu_to_parent(menu_class, icon=data.get('icon', 'NONE'))
 
 def make_menus(config):
@@ -163,11 +154,10 @@ def make_menus(config):
         config_dict = json.loads(f.read())
     
     filepath = config_dict['filepath']
-    blendname = config.name.removesuffix('.json').replace(" ", "_").upper()
 
     for tree, data_dict in config_dict['configs'].items():
         for menu_data in data_dict['menus'].items():
-            generate_menu(filepath=filepath, blendname=blendname, menu_data=menu_data, data_dict=data_dict, tree_type=tree)
+            generate_menu(filepath=filepath, menu_data=menu_data, data_dict=data_dict, tree_type=tree)
 
 def register():
     menu_classes.clear()
