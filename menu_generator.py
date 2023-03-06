@@ -44,7 +44,6 @@ class NODE_MT_nodegroup_library(bpy.types.Menu):
 
     @classmethod
     def poll(cls, context):
-        #return True
         return context.space_data.tree_type in cls.valid_nodetrees
 
     def draw(self, context):

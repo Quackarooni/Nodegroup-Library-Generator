@@ -25,8 +25,8 @@ bl_info = {
     "category": "Node",
 }
 
-from . import operators, prefs, ui, menu_generator
-modules = (operators, prefs, ui, menu_generator)
+from . import operators, prefs, ui, menu_generator, update_handlers
+modules = (operators, prefs, ui, menu_generator, update_handlers)
 
 def register():
     for module in modules:
