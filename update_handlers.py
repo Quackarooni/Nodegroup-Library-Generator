@@ -34,6 +34,41 @@ class NODEGROUP_LIBRARY_UPDATE_JSON_CONFIGS(Operator):
         bpy.context.window_manager.popup_menu(display_error, title='Report: Error')
         raise ValueError(error_message)
 
+    @staticmethod
+    def fetch_nodetrees():
+        data = bpy.data
+        nodetrees = []
+
+        #===== COMPOSITOR NODETREE =====
+        scene = data.scenes.get('Nodegroup Library')
+        if hasattr(scene, "node_tree") and (scene.node_tree is not None):
+            compositor_tree = scene.node_tree
+            nodetrees.append(compositor_tree)
+
+        #===== SHADER NODETREE =====
+        material = data.materials.get('Nodegroup Library')
+        if hasattr(material, "node_tree") and (material.node_tree is not None):
+            shader_tree = material.node_tree
+            nodetrees.append(shader_tree)
+
+        #===== GEOMETRY NODETREE =====
+        nodegroup = data.node_groups.get('Nodegroup Library')
+        if hasattr(nodegroup, 'bl_idname'):
+            if nodegroup.bl_idname == 'GeometryNodeTree':
+                geonodes_tree = nodegroup
+                nodetrees.append(geonodes_tree)
+            else:
+                raise Exception("Nodegroup that isn't of type GeometryNodeTree is named 'Nodegroup Library'")
+
+        #===== TEXTURE NODETREE =====
+        texture = data.textures.get('Nodegroup Library')
+        if hasattr(texture, 'node_tree'):
+            if hasattr(texture.node_tree, "nodes") and (texture.node_tree is not None):
+                texture_nodes_tree = texture.node_tree
+                nodetrees.append(texture_nodes_tree)
+
+        return nodetrees
+
     @classmethod
     def poll(cls, context):
         return True
@@ -44,38 +79,8 @@ class NODEGROUP_LIBRARY_UPDATE_JSON_CONFIGS(Operator):
 
         main_name = filepath.name.removesuffix(".blend")
         abbr = "".join(chars[0] for chars in main_name.replace(" ", "_").split("_")[:10])
-        data = bpy.data
 
-        compositor_tree = None
-        shader_tree = None
-        geonodes_tree = None
-        texture_nodes_tree = None
-
-        #===== COMPOSITOR NODETREE =====
-        scene = data.scenes.get('Nodegroup Library')
-        if hasattr(scene, "node_tree") and (scene.node_tree is not None):
-            compositor_tree = scene.node_tree
-
-        #===== SHADER NODETREE =====
-        material = data.materials.get('Nodegroup Library')
-        if hasattr(material, "node_tree") and (material.node_tree is not None):
-            shader_tree = material.node_tree
-
-        #===== GEOMETRY NODETREE =====
-        nodegroup = data.node_groups.get('Nodegroup Library')
-        if hasattr(nodegroup, 'bl_idname'):
-            if nodegroup.bl_idname == 'GeometryNodeTree':
-                geonodes_tree = nodegroup
-            else:
-                raise Exception("Nodegroup that isn't of type GeometryNodeTree is named 'Nodegroup Library'")
-
-        #===== TEXTURE NODETREE =====
-        texture = data.textures.get('Nodegroup Library')
-        if hasattr(texture, 'node_tree'):
-            if hasattr(texture.node_tree, "nodes") and (texture.node_tree is not None):
-                texture_nodes_tree = texture.node_tree
-
-        nodetrees = [shader_tree, geonodes_tree, compositor_tree, texture_nodes_tree]
+        nodetrees = self.fetch_nodetrees()
 
         def name_hash(menu_name, prefix):
             hashed_name = str(hash(f'{main_name}{menu_name}'))
@@ -86,8 +91,6 @@ class NODEGROUP_LIBRARY_UPDATE_JSON_CONFIGS(Operator):
 
         def generate_idname(name, prefix):
             return f'NODEGROUP_LIBRARY_MT_{abbr}_{prefix.upper()}_{name}'
-
-
 
         supported_variables = {
             'ICON' : "string",
@@ -208,7 +211,7 @@ class NODEGROUP_LIBRARY_UPDATE_JSON_CONFIGS(Operator):
             for node in groups:
                 name = name_hash(node.name, prefix)
                 label = node.label
-                
+
                 parent = name_hash(node.parent.name, prefix) if node.parent is not None else None
                 
                 extra_data = {}
@@ -255,9 +258,8 @@ class NODEGROUP_LIBRARY_UPDATE_JSON_CONFIGS(Operator):
             return tree_type, menus, nodegroups
 
         tree_configs = {}
-
         for tree in nodetrees:
-            if tree is not None and len([node for node in tree.nodes if node.bl_label == 'Group']) > 0:
+            if len([node for node in tree.nodes if node.bl_label in ('Group', 'Frame')]) > 0:
                 tree_type, menus, nodegroups = generate_config(tree)
                 tree_configs[tree_type] = {'menus': menus, 'nodegroups': nodegroups}
 
@@ -268,6 +270,7 @@ class NODEGROUP_LIBRARY_UPDATE_JSON_CONFIGS(Operator):
         with open(cache_path, "w") as fp:
             json.dump(output, fp=fp, indent=4)
 
+        self.report({'INFO'}, "Successfully update menu configs")
         return {'FINISHED'}
 
 
