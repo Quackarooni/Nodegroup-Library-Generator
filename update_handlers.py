@@ -237,11 +237,13 @@ class NODEGROUP_LIBRARY_UPDATE_JSON_CONFIGS(Operator):
                 is_expandable = all(does_children_have_submenu) and len(does_children_have_submenu) != 0
                 value['is_expandable'] = is_expandable
                 submenus = value['items']['submenus']
+                groups = value['items']['nodegroups']
             
                 submenu_dict = {}
+                nodegroup_dict = {}
             
                 submenus.sort(key=lambda _: menus[_]['label'])
-                value['items']['nodegroups'].sort(key=lambda _: nodegroups[_]['node_tree'])
+                groups.sort(key=lambda _: nodegroups[_]['node_tree'])
             
                 for submenu in submenus:
                     group_index = menus[submenu].get('group_index', None)
@@ -253,8 +255,22 @@ class NODEGROUP_LIBRARY_UPDATE_JSON_CONFIGS(Operator):
                         group_index_val.append(submenu)
                         
                 sorted_dict = {i:submenu_dict[i] for i in sorted(submenu_dict, key=lambda _: str(_))}
+
+
+                for group in groups:
+                    group_index = nodegroups[group].get('group_index', None)
+                    group_index_val = nodegroup_dict.get(group_index)
+                    
+                    if group_index_val is None:
+                        nodegroup_dict[group_index] = [group,]
+                    else:
+                        group_index_val.append(group)
+
+                sorted_nodegroup_dict = {i:nodegroup_dict[i] for i in sorted(nodegroup_dict, key=lambda _: str(_))}
+
                 value['items']['submenus'] = sorted_dict
-                
+                value['items']['nodegroups'] = sorted_nodegroup_dict
+
             return tree_type, menus, nodegroups
 
         tree_configs = {}

@@ -76,16 +76,18 @@ def generate_menu(filepath, menu_data, data_dict, tree_type):
         if submenu_groups and nodegroup_items:
             layout.separator(factor=spacing)
 
-        for nodegroup in nodegroup_items:
-            nodegroup_data = nodegroups[nodegroup]
-            label = nodegroup_data['label']
-            nodetree_name = nodegroup_data['node_tree']
-            label = label if label != '' else nodetree_name
-            
-            props = layout.operator(append_nodegroup.bl_idname, text=label, icon=nodegroup_data.get("icon", 'NONE'))
-            props.filepath = filepath
-            props.group_name = nodetree_name
-            props.width = nodegroup_data['width']
+        for group_index, group in nodegroup_items.items():
+            layout.separator(factor=spacing)
+            for nodegroup in group:
+                nodegroup_data = nodegroups[nodegroup]
+                label = nodegroup_data['label']
+                nodetree_name = nodegroup_data['node_tree']
+                label = label if label != '' else nodetree_name
+                
+                props = layout.operator(append_nodegroup.bl_idname, text=label, icon=nodegroup_data.get("icon", 'NONE'))
+                props.filepath = filepath
+                props.group_name = nodetree_name
+                props.width = nodegroup_data['width']
     
     def draw_expanded(self, context):
         layout = self.layout
@@ -120,16 +122,18 @@ def generate_menu(filepath, menu_data, data_dict, tree_type):
             col.label(text="Misc.")
             col.separator(factor=spacing)
 
-        for nodegroup in nodegroup_items:
-            nodegroup_data = nodegroups[nodegroup]
-            label = nodegroup_data['label']
-            nodetree_name = nodegroup_data['node_tree']
-            label = label if label != '' else nodetree_name
-            
-            props = col.operator(append_nodegroup.bl_idname, text=label, icon=nodegroup_data.get("icon", 'NONE'))
-            props.filepath = filepath
-            props.group_name = nodetree_name
-            props.width = nodegroup_data['width']
+        for group_index, group in nodegroup_items.items():
+            layout.separator(factor=spacing)
+            for nodegroup in group:
+                nodegroup_data = nodegroups[nodegroup]
+                label = nodegroup_data['label']
+                nodetree_name = nodegroup_data['node_tree']
+                label = label if label != '' else nodetree_name
+                
+                props = col.operator(append_nodegroup.bl_idname, text=label, icon=nodegroup_data.get("icon", 'NONE'))
+                props.filepath = filepath
+                props.group_name = nodetree_name
+                props.width = nodegroup_data['width']
         
     menu_class = type(menu_idname,(NGL_BaseMenu,),
         {
