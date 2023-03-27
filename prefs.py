@@ -1,3 +1,4 @@
+from faulthandler import is_enabled
 import bpy
 from bpy.props import EnumProperty, BoolProperty, StringProperty, CollectionProperty, IntProperty
 from bpy_extras.io_utils import ImportHelper, ExportHelper
@@ -152,6 +153,40 @@ class LIST_OT_DeleteAllItems(bpy.types.Operator):
         
         my_list.clear() 
         prefs.list_index = 0
+        return{'FINISHED'}
+    
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
+
+class LIST_OT_SortAllItems(bpy.types.Operator):
+    bl_idname = "my_list.sort_all_items" 
+    #bl_label = "Delete All"
+    bl_label = "This will cannot be undone, are you sure?"
+
+    @classmethod 
+    def poll(cls, context): 
+        prefs = fetch_user_preferences()
+        return len(prefs.my_list) > 1
+    
+    def execute(self, context): 
+        prefs = fetch_user_preferences()
+        my_list = prefs.my_list 
+
+        attrs = ('name', 'filepath', 'prefix', 'is_enabled')
+        sorted_list = tuple(sorted(my_list, key=lambda x:x.name.upper()))
+
+        if all(a == b for a,b in zip(my_list, sorted_list)):
+            self.report({'INFO'}, f"List is already sorted")
+            return{'FINISHED'}
+        
+        sorted_data = [(item.name, item.filepath, item.prefix, item.is_enabled) for item in sorted_list]
+        my_list.clear()
+        
+        for data in sorted_data:
+            entry = my_list.add()
+            for attr, value in zip(attrs, data):
+                setattr(entry, attr, value)
+
         return{'FINISHED'}
     
     def invoke(self, context, event):
@@ -317,6 +352,7 @@ class LIST_MT_UIList_BATCH_OPS(bpy.types.Menu):
         layout.operator("my_list.move_to_bottom", text="Reorder to Bottom", icon='TRIA_DOWN_BAR')
         
         layout.separator()
+        layout.operator("my_list.sort_all_items", text="Sort All by Name", icon='SORTALPHA')
         layout.operator("my_list.delete_all_items", text="Delete All Entries", icon='X')
         return
 
@@ -405,6 +441,7 @@ def register():
     bpy.utils.register_class(LIST_OT_NewItem)
     bpy.utils.register_class(LIST_OT_DeleteItem)
     bpy.utils.register_class(LIST_OT_DeleteAllItems)
+    bpy.utils.register_class(LIST_OT_SortAllItems)
     bpy.utils.register_class(LIST_OT_MoveItem_Up)
     bpy.utils.register_class(LIST_OT_MoveItem_Down)
     bpy.utils.register_class(LIST_OT_MovetoTop)
@@ -426,6 +463,7 @@ def unregister():
     bpy.utils.unregister_class(LIST_OT_NewItem)
     bpy.utils.unregister_class(LIST_OT_DeleteItem)
     bpy.utils.unregister_class(LIST_OT_DeleteAllItems)
+    bpy.utils.unregister_class(LIST_OT_SortAllItems)
     bpy.utils.unregister_class(LIST_OT_MoveItem_Up)
     bpy.utils.unregister_class(LIST_OT_MoveItem_Down)
     bpy.utils.unregister_class(LIST_OT_MovetoTop)
