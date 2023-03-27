@@ -201,10 +201,16 @@ class LIST_OT_ToggleAllBlendfiles(bpy.types.Operator):
 
         return{'FINISHED'}
 
-class LIST_OT_ResetAllNames(bpy.types.Operator):
-    bl_idname = "my_list.set_all_names"
-    bl_label = "Reset All Names"
-    bl_description = "Resets all names to derive from filepath"
+class LIST_OT_ResetAllNamesPrefixes(bpy.types.Operator):
+    bl_idname = "my_list.set_all_names_prefixes"
+    bl_label = "Reset All Names and Prefixes"
+    bl_description = "Resets all names/prefixes to derive from filepath"
+
+    mode: EnumProperty(name="Mode", items=(
+            ("NAMES", "Names", "Resets all names"),
+            ("PREFIXES", "Prefixes", "Resets all prefixes"),
+            ("BOTH", "Both", "Reset both"),
+        ),)
 
     @classmethod
     def poll(cls, context):
@@ -215,27 +221,13 @@ class LIST_OT_ResetAllNames(bpy.types.Operator):
         prefs = fetch_user_preferences()
         my_list = prefs.my_list
 
-        for item in my_list:
-            item.name = Path(item.filepath).stem
+        if self.mode in ("NAMES", "BOTH"):
+            for item in my_list:
+                item.name = Path(item.filepath).stem
 
-        return{'FINISHED'}
-
-class LIST_OT_ResetAllPrefixes(bpy.types.Operator):
-    bl_idname = "my_list.set_all_prefixes"
-    bl_label = "Reset All Prefixes"
-    bl_description = "Resets all prefixes to derive from name"
-
-    @classmethod
-    def poll(cls, context):
-        prefs = fetch_user_preferences()
-        return len(prefs.my_list) > 0
-
-    def execute(self, context):
-        prefs = fetch_user_preferences()
-        my_list = prefs.my_list
-
-        for item in my_list:
-            item.prefix = generate_prefix(item.name)
+        if self.mode in ("PREFIXES", "BOTH"):
+            for item in my_list:
+                item.prefix = generate_prefix(item.name)
 
         return{'FINISHED'}
 
@@ -253,8 +245,9 @@ class LIST_MT_UIList_BATCH_OPS(bpy.types.Menu):
         props.mode = "DISABLE"
 
         layout.separator()
-        layout.operator("my_list.set_all_names")
-        layout.operator("my_list.set_all_prefixes")
+        layout.operator("my_list.set_all_names_prefixes", text="Reset All Names").mode = "NAMES"
+        layout.operator("my_list.set_all_names_prefixes", text="Reset All Prefixes").mode = "PREFIXES"
+        layout.operator("my_list.set_all_names_prefixes", text="Reset Both").mode = "BOTH"
         return
 
 class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
@@ -347,8 +340,7 @@ def register():
     bpy.utils.register_class(LIST_OT_AutogenerateName)
     bpy.utils.register_class(LIST_OT_AutogeneratePrefix)
     bpy.utils.register_class(LIST_OT_ToggleAllBlendfiles)
-    bpy.utils.register_class(LIST_OT_ResetAllNames)
-    bpy.utils.register_class(LIST_OT_ResetAllPrefixes)
+    bpy.utils.register_class(LIST_OT_ResetAllNamesPrefixes)
     bpy.utils.register_class(LIST_MT_UIList_BATCH_OPS)
 
     #bpy.types.Scene.my_list = CollectionProperty(type = ListItem) 
@@ -366,8 +358,7 @@ def unregister():
     bpy.utils.unregister_class(LIST_OT_AutogenerateName)
     bpy.utils.unregister_class(LIST_OT_AutogeneratePrefix)
     bpy.utils.unregister_class(LIST_OT_ToggleAllBlendfiles)
-    bpy.utils.unregister_class(LIST_OT_ResetAllNames)
-    bpy.utils.unregister_class(LIST_OT_ResetAllPrefixes)
+    bpy.utils.unregister_class(LIST_OT_ResetAllNamesPrefixes)
     bpy.utils.unregister_class(LIST_MT_UIList_BATCH_OPS)
 
     #del bpy.types.Scene.my_list
