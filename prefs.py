@@ -176,6 +176,48 @@ class LIST_OT_MoveItem_Down(bpy.types.Operator):
         prefs.list_index = clamp(neighbor_index, lower=0, upper=len(my_list) - 1)
         return{'FINISHED'}
 
+class LIST_OT_MovetoTop(bpy.types.Operator):
+    bl_idname = "my_list.move_to_top"
+    bl_label = ""
+    bl_description = "Move an item to the top of list"
+
+    @classmethod
+    def poll(cls, context):
+        prefs = fetch_user_preferences()
+        return prefs.list_index > 0
+
+    def execute(self, context):
+        prefs = fetch_user_preferences()
+        my_list = prefs.my_list
+        index = prefs.list_index
+        max_index = len(my_list) - 1
+        target_index = 0
+
+        my_list.move(index, target_index)
+        prefs.list_index = clamp(target_index, lower=0, upper=max_index)
+        return{'FINISHED'}
+
+class LIST_OT_MovetoBottom(bpy.types.Operator):
+    bl_idname = "my_list.move_to_bottom"
+    bl_label = ""
+    bl_description = "Move an item to the bottom of list"
+
+    @classmethod
+    def poll(cls, context):
+        prefs = fetch_user_preferences()
+        return prefs.list_index < len(prefs.my_list) - 1
+
+    def execute(self, context):
+        prefs = fetch_user_preferences()
+        my_list = prefs.my_list
+        index = prefs.list_index
+        max_index = len(my_list) - 1
+        target_index = max_index 
+
+        my_list.move(index, target_index)
+        prefs.list_index = clamp(target_index, lower=0, upper=max_index)
+        return{'FINISHED'}
+
 class LIST_OT_ToggleAllBlendfiles(bpy.types.Operator):
     bl_idname = "my_list.toggle_all_blendfiles"
     bl_label = ""
@@ -248,6 +290,10 @@ class LIST_MT_UIList_BATCH_OPS(bpy.types.Menu):
         layout.operator("my_list.set_all_names_prefixes", text="Reset All Names").mode = "NAMES"
         layout.operator("my_list.set_all_names_prefixes", text="Reset All Prefixes").mode = "PREFIXES"
         layout.operator("my_list.set_all_names_prefixes", text="Reset Both").mode = "BOTH"
+        
+        layout.separator()
+        layout.operator("my_list.move_to_top", text="Reorder to Top", icon='TRIA_UP_BAR')
+        layout.operator("my_list.move_to_bottom", text="Reorder to Bottom", icon='TRIA_DOWN_BAR')
         return
 
 class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
@@ -336,6 +382,8 @@ def register():
     bpy.utils.register_class(LIST_OT_DeleteItem)
     bpy.utils.register_class(LIST_OT_MoveItem_Up)
     bpy.utils.register_class(LIST_OT_MoveItem_Down)
+    bpy.utils.register_class(LIST_OT_MovetoTop)
+    bpy.utils.register_class(LIST_OT_MovetoBottom)
     bpy.utils.register_class(LIST_OT_UpdateFilepath)
     bpy.utils.register_class(LIST_OT_AutogenerateName)
     bpy.utils.register_class(LIST_OT_AutogeneratePrefix)
@@ -354,6 +402,8 @@ def unregister():
     bpy.utils.unregister_class(LIST_OT_DeleteItem)
     bpy.utils.unregister_class(LIST_OT_MoveItem_Up)
     bpy.utils.unregister_class(LIST_OT_MoveItem_Down)
+    bpy.utils.unregister_class(LIST_OT_MovetoTop)
+    bpy.utils.unregister_class(LIST_OT_MovetoBottom)
     bpy.utils.unregister_class(LIST_OT_UpdateFilepath)
     bpy.utils.unregister_class(LIST_OT_AutogenerateName)
     bpy.utils.unregister_class(LIST_OT_AutogeneratePrefix)
