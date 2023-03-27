@@ -3,6 +3,9 @@ from bpy.props import EnumProperty, BoolProperty, StringProperty, CollectionProp
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from pathlib import Path
 
+def clamp(value, lower, upper):
+    return lower if value < lower else upper if value > upper else value
+
 def fetch_user_preferences():
     return bpy.context.preferences.addons[__package__].preferences
 
@@ -51,9 +54,10 @@ class LIST_OT_NewItem(bpy.types.Operator, ImportHelper):
 
         my_list.add()
         index = prefs.list_index 
+        list_length = len(my_list) - 1 
 
-        intended_index = min(max(0, index + 1), len(my_list) - 1)
-        my_list.move(len(my_list) - 1, intended_index)
+        intended_index = clamp(index + 1, lower=0, upper=list_length)
+        my_list.move(list_length, intended_index)
 
         item = my_list[intended_index]
         item.name = filepath.stem
@@ -106,8 +110,9 @@ class LIST_OT_DeleteItem(bpy.types.Operator):
         prefs = fetch_user_preferences()
         my_list = prefs.my_list 
         index = prefs.list_index 
+        
         my_list.remove(index) 
-        prefs.list_index = min(max(0, index - 1), len(my_list) - 1) 
+        prefs.list_index = clamp(index - 1, lower=0, upper=len(my_list) - 1)
         return{'FINISHED'}
 
 
@@ -132,8 +137,7 @@ class LIST_OT_MoveItem(bpy.types.Operator):
         index = prefs.list_index
         list_length = len(prefs.my_list) - 1  # (index starts at 0)
         new_index = index + (-1 if self.direction == 'UP' else 1)
-
-        prefs.list_index = max(0, min(new_index, list_length))
+        prefs.list_index = clamp(new_index, lower=0, upper=list_length)
 
     def execute(self, context):
         prefs = fetch_user_preferences()
