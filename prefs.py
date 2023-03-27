@@ -25,8 +25,10 @@ class MY_UL_List(bpy.types.UIList):
         # Make sure your code supports all 3 layout types 
         if self.layout_type in {'DEFAULT', 'COMPACT'}: 
             #layout.label(text=item.name, icon = custom_icon)
-            layout.prop(item, "name", icon = custom_icon, emboss=False, text="")
+            split = layout.split(factor=0.75)
+            split.prop(item, "name", icon = custom_icon, emboss=False, text="")
             icon = 'CHECKBOX_HLT' if item.is_enabled else 'CHECKBOX_DEHLT'
+            split.prop(item, "prefix", emboss=False)
             layout.prop(item, "is_enabled", text="", emboss=False, icon=icon)
         elif self.layout_type in {'GRID'}: 
             layout.alignment = 'CENTER' 
