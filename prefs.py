@@ -35,6 +35,18 @@ class MY_UL_List(bpy.types.UIList):
             layout.label(text="", icon = custom_icon) 
             # ( inside register() ) bpy.utils.register_class(MY_UL_List)
 
+class LIST_OT_AutogenerateName(bpy.types.Operator):
+    bl_idname = "my_list.autogenerate_name" 
+    bl_label = "Auto-Generate Name" 
+
+    def execute(self, context): 
+        prefs = fetch_user_preferences()
+        selected_item = prefs.my_list[prefs.list_index]
+        selected_item.name = Path(selected_item.filepath).stem
+
+        return{'FINISHED'}
+
+
 class LIST_OT_AutogeneratePrefix(bpy.types.Operator):
     bl_idname = "my_list.autogenerate_prefix" 
     bl_label = "Auto-Generate Prefix" 
@@ -226,8 +238,10 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
             item = self.my_list[self.list_index] 
             col = layout.column()
             col.use_property_split = True
-            row = col.row()
+
+            row = col.row(align=True)
             row.prop(item, "name") 
+            row.operator("my_list.autogenerate_name", text="", icon='EVENT_A')
             row.separator(factor = 1.35)
 
             row = col.row(align=True)
@@ -235,7 +249,7 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
             row.operator("my_list.update_filepath", text="", icon='FILEBROWSER')
             row.separator(factor = 1.35)
 
-            row = col.row()
+            row = col.row(align=True)
             row.prop(item, "prefix")
             row.operator("my_list.autogenerate_prefix", text="", icon='EVENT_A')
             row.separator(factor = 1.35)
@@ -253,6 +267,7 @@ def register():
     bpy.utils.register_class(LIST_OT_MoveItem_Up)
     bpy.utils.register_class(LIST_OT_MoveItem_Down)
     bpy.utils.register_class(LIST_OT_UpdateFilepath)
+    bpy.utils.register_class(LIST_OT_AutogenerateName)
     bpy.utils.register_class(LIST_OT_AutogeneratePrefix)
 
     #bpy.types.Scene.my_list = CollectionProperty(type = ListItem) 
@@ -267,6 +282,7 @@ def unregister():
     bpy.utils.unregister_class(LIST_OT_MoveItem_Up)
     bpy.utils.unregister_class(LIST_OT_MoveItem_Down)
     bpy.utils.unregister_class(LIST_OT_UpdateFilepath)
+    bpy.utils.unregister_class(LIST_OT_AutogenerateName)
     bpy.utils.unregister_class(LIST_OT_AutogeneratePrefix)
 
     #del bpy.types.Scene.my_list
