@@ -54,10 +54,10 @@ class LIST_OT_NewItem(bpy.types.Operator, ImportHelper):
 
         my_list.add()
         index = prefs.list_index 
-        list_length = len(my_list) - 1 
+        max_index = len(my_list) - 1 
 
-        intended_index = clamp(index + 1, lower=0, upper=list_length)
-        my_list.move(list_length, intended_index)
+        intended_index = clamp(index + 1, lower=0, upper=max_index)
+        my_list.move(max_index, intended_index)
 
         item = my_list[intended_index]
         item.name = filepath.stem
@@ -115,39 +115,44 @@ class LIST_OT_DeleteItem(bpy.types.Operator):
         prefs.list_index = clamp(index - 1, lower=0, upper=len(my_list) - 1)
         return{'FINISHED'}
 
-
-class LIST_OT_MoveItem(bpy.types.Operator):
-    """Move an item in the list."""
-
-    bl_idname = "my_list.move_item"
-    bl_label = "Move an item in the list"
-
-    direction : bpy.props.EnumProperty(items=(('UP', 'Up', ""),
-                                              ('DOWN', 'Down', ""),))
+class LIST_OT_MoveItem_Up(bpy.types.Operator):
+    bl_idname = "my_list.move_item_up"
+    bl_label = ""
+    bl_description = "Move an item up in the list"
 
     @classmethod
     def poll(cls, context):
         prefs = fetch_user_preferences()
-        return len(prefs.my_list) > 1
-
-    def move_index(self):
-        """ Move index of an item render queue while clamping it. """
-
-        prefs = fetch_user_preferences()
-        index = prefs.list_index
-        list_length = len(prefs.my_list) - 1  # (index starts at 0)
-        new_index = index + (-1 if self.direction == 'UP' else 1)
-        prefs.list_index = clamp(new_index, lower=0, upper=list_length)
+        return prefs.list_index > 0
 
     def execute(self, context):
         prefs = fetch_user_preferences()
         my_list = prefs.my_list
         index = prefs.list_index
+        neighbor_index = index - 1
 
-        neighbor = index + (-1 if self.direction == 'UP' else 1)
-        my_list.move(neighbor, index)
-        self.move_index()
+        my_list.move(neighbor_index, index)
+        prefs.list_index = clamp(neighbor_index, lower=0, upper=len(my_list) - 1)
+        return{'FINISHED'}
 
+class LIST_OT_MoveItem_Down(bpy.types.Operator):
+    bl_idname = "my_list.move_item_down"
+    bl_label = ""
+    bl_description = "Move an item down in the list"
+
+    @classmethod
+    def poll(cls, context):
+        prefs = fetch_user_preferences()
+        return prefs.list_index < len(prefs.my_list) - 1
+
+    def execute(self, context):
+        prefs = fetch_user_preferences()
+        my_list = prefs.my_list
+        index = prefs.list_index
+        neighbor_index = index + 1
+
+        my_list.move(neighbor_index, index)
+        prefs.list_index = clamp(neighbor_index, lower=0, upper=len(my_list) - 1)
         return{'FINISHED'}
 
 class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
@@ -197,8 +202,8 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
         col.operator("my_list.delete_item", text="", icon='REMOVE')
 
         col.separator(factor = 1)
-        col.operator("my_list.move_item", text="", icon='TRIA_UP').direction = "UP"
-        col.operator("my_list.move_item", text="", icon='TRIA_DOWN').direction = "DOWN"
+        col.operator("my_list.move_item_up", text="", icon='TRIA_UP')
+        col.operator("my_list.move_item_down", text="", icon='TRIA_DOWN')
         
         if self.list_index >= 0 and self.my_list: 
             item = self.my_list[self.list_index] 
@@ -228,7 +233,8 @@ def register():
     bpy.utils.register_class(MY_UL_List)
     bpy.utils.register_class(LIST_OT_NewItem)
     bpy.utils.register_class(LIST_OT_DeleteItem)
-    bpy.utils.register_class(LIST_OT_MoveItem)
+    bpy.utils.register_class(LIST_OT_MoveItem_Up)
+    bpy.utils.register_class(LIST_OT_MoveItem_Down)
     bpy.utils.register_class(LIST_OT_UpdateFilepath)
 
     #bpy.types.Scene.my_list = CollectionProperty(type = ListItem) 
@@ -240,7 +246,8 @@ def unregister():
     bpy.utils.unregister_class(MY_UL_List)
     bpy.utils.unregister_class(LIST_OT_NewItem)
     bpy.utils.unregister_class(LIST_OT_DeleteItem)
-    bpy.utils.unregister_class(LIST_OT_MoveItem)
+    bpy.utils.unregister_class(LIST_OT_MoveItem_Up)
+    bpy.utils.unregister_class(LIST_OT_MoveItem_Down)
     bpy.utils.unregister_class(LIST_OT_UpdateFilepath)
 
     #del bpy.types.Scene.my_list
