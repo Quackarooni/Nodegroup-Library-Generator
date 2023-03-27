@@ -65,10 +65,6 @@ class LIST_OT_NewItem(bpy.types.Operator, ImportHelper):
     filename_ext = '.blend'
     filter_glob: StringProperty(default='*.blend', options={'HIDDEN'})
 
-    @classmethod
-    def poll(cls, context):
-        return True
-
     def execute(self, context): 
         filepath = Path(self.properties.filepath)
 
@@ -100,10 +96,6 @@ class LIST_OT_UpdateFilepath(bpy.types.Operator, ImportHelper):
     
     filename_ext = '.blend'
     filter_glob: StringProperty(default='*.blend', options={'HIDDEN'})
-
-    @classmethod
-    def poll(cls, context):
-        return True
 
     def execute(self, context): 
         filepath = Path(self.properties.filepath)
@@ -184,6 +176,87 @@ class LIST_OT_MoveItem_Down(bpy.types.Operator):
         prefs.list_index = clamp(neighbor_index, lower=0, upper=len(my_list) - 1)
         return{'FINISHED'}
 
+class LIST_OT_ToggleAllBlendfiles(bpy.types.Operator):
+    bl_idname = "my_list.toggle_all_blendfiles"
+    bl_label = ""
+    bl_description = "Enables/Disables all blendfiles in list"
+
+    mode: EnumProperty(name="UI Mode", items=(
+            ("ENABLE", "Enable", "Enables all blendfiles"),
+            ("DISABLE", "Disable", "Disable all blendfiles"),
+        ),)
+
+    @classmethod
+    def poll(cls, context):
+        prefs = fetch_user_preferences()
+        return len(prefs.my_list) > 0
+
+    def execute(self, context):
+        prefs = fetch_user_preferences()
+        my_list = prefs.my_list
+        should_enable = self.mode == "ENABLE"
+
+        for item in my_list:
+            item.is_enabled = should_enable
+
+        return{'FINISHED'}
+
+class LIST_OT_ResetAllNames(bpy.types.Operator):
+    bl_idname = "my_list.set_all_names"
+    bl_label = "Reset All Names"
+    bl_description = "Resets all names to derive from filepath"
+
+    @classmethod
+    def poll(cls, context):
+        prefs = fetch_user_preferences()
+        return len(prefs.my_list) > 0
+
+    def execute(self, context):
+        prefs = fetch_user_preferences()
+        my_list = prefs.my_list
+
+        for item in my_list:
+            item.name = Path(item.filepath).stem
+
+        return{'FINISHED'}
+
+class LIST_OT_ResetAllPrefixes(bpy.types.Operator):
+    bl_idname = "my_list.set_all_prefixes"
+    bl_label = "Reset All Prefixes"
+    bl_description = "Resets all prefixes to derive from name"
+
+    @classmethod
+    def poll(cls, context):
+        prefs = fetch_user_preferences()
+        return len(prefs.my_list) > 0
+
+    def execute(self, context):
+        prefs = fetch_user_preferences()
+        my_list = prefs.my_list
+
+        for item in my_list:
+            item.prefix = generate_prefix(item.name)
+
+        return{'FINISHED'}
+
+class LIST_MT_UIList_BATCH_OPS(bpy.types.Menu):
+    bl_label = "Batch Operations"
+    bl_idname = "LIST_MT_UIList_BATCH_OPS"
+
+    def draw(self, context):
+        layout = self.layout
+
+        props = layout.operator("my_list.toggle_all_blendfiles", text="Enable All")
+        props.mode = "ENABLE"
+
+        props = layout.operator("my_list.toggle_all_blendfiles", text="Disable All")
+        props.mode = "DISABLE"
+
+        layout.separator()
+        layout.operator("my_list.set_all_names")
+        layout.operator("my_list.set_all_prefixes")
+        return
+
 class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
@@ -231,9 +304,13 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
         col.operator("my_list.delete_item", text="", icon='REMOVE')
 
         col.separator(factor = 1)
+        col.menu("LIST_MT_UIList_BATCH_OPS", text="", icon='DOWNARROW_HLT')
+
+        col.separator(factor = 1)
         col.operator("my_list.move_item_up", text="", icon='TRIA_UP')
         col.operator("my_list.move_item_down", text="", icon='TRIA_DOWN')
         
+
         if self.list_index >= 0 and self.my_list: 
             item = self.my_list[self.list_index] 
             col = layout.column()
@@ -269,6 +346,10 @@ def register():
     bpy.utils.register_class(LIST_OT_UpdateFilepath)
     bpy.utils.register_class(LIST_OT_AutogenerateName)
     bpy.utils.register_class(LIST_OT_AutogeneratePrefix)
+    bpy.utils.register_class(LIST_OT_ToggleAllBlendfiles)
+    bpy.utils.register_class(LIST_OT_ResetAllNames)
+    bpy.utils.register_class(LIST_OT_ResetAllPrefixes)
+    bpy.utils.register_class(LIST_MT_UIList_BATCH_OPS)
 
     #bpy.types.Scene.my_list = CollectionProperty(type = ListItem) 
     #bpy.types.Scene.list_index = IntProperty(name = "Index for my_list", default = 0)
@@ -284,6 +365,10 @@ def unregister():
     bpy.utils.unregister_class(LIST_OT_UpdateFilepath)
     bpy.utils.unregister_class(LIST_OT_AutogenerateName)
     bpy.utils.unregister_class(LIST_OT_AutogeneratePrefix)
+    bpy.utils.unregister_class(LIST_OT_ToggleAllBlendfiles)
+    bpy.utils.unregister_class(LIST_OT_ResetAllNames)
+    bpy.utils.unregister_class(LIST_OT_ResetAllPrefixes)
+    bpy.utils.unregister_class(LIST_MT_UIList_BATCH_OPS)
 
     #del bpy.types.Scene.my_list
     #del bpy.types.Scene.list_index
