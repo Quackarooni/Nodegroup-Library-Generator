@@ -136,6 +136,27 @@ class LIST_OT_DeleteItem(bpy.types.Operator):
         prefs.list_index = clamp(index - 1, lower=0, upper=len(my_list) - 1)
         return{'FINISHED'}
 
+class LIST_OT_DeleteAllItems(bpy.types.Operator):
+    bl_idname = "my_list.delete_all_items" 
+    #bl_label = "Delete All"
+    bl_label = "This will delete all items, are you sure?"
+
+    @classmethod 
+    def poll(cls, context): 
+        prefs = fetch_user_preferences()
+        return prefs.my_list 
+    
+    def execute(self, context): 
+        prefs = fetch_user_preferences()
+        my_list = prefs.my_list 
+        
+        my_list.clear() 
+        prefs.list_index = 0
+        return{'FINISHED'}
+    
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
+
 class LIST_OT_MoveItem_Up(bpy.types.Operator):
     bl_idname = "my_list.move_item_up"
     bl_label = ""
@@ -294,6 +315,9 @@ class LIST_MT_UIList_BATCH_OPS(bpy.types.Menu):
         layout.separator()
         layout.operator("my_list.move_to_top", text="Reorder to Top", icon='TRIA_UP_BAR')
         layout.operator("my_list.move_to_bottom", text="Reorder to Bottom", icon='TRIA_DOWN_BAR')
+        
+        layout.separator()
+        layout.operator("my_list.delete_all_items", text="Delete All Entries", icon='X')
         return
 
 class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
@@ -380,6 +404,7 @@ def register():
     bpy.utils.register_class(MY_UL_List)
     bpy.utils.register_class(LIST_OT_NewItem)
     bpy.utils.register_class(LIST_OT_DeleteItem)
+    bpy.utils.register_class(LIST_OT_DeleteAllItems)
     bpy.utils.register_class(LIST_OT_MoveItem_Up)
     bpy.utils.register_class(LIST_OT_MoveItem_Down)
     bpy.utils.register_class(LIST_OT_MovetoTop)
@@ -400,6 +425,7 @@ def unregister():
     bpy.utils.unregister_class(MY_UL_List)
     bpy.utils.unregister_class(LIST_OT_NewItem)
     bpy.utils.unregister_class(LIST_OT_DeleteItem)
+    bpy.utils.unregister_class(LIST_OT_DeleteAllItems)
     bpy.utils.unregister_class(LIST_OT_MoveItem_Up)
     bpy.utils.unregister_class(LIST_OT_MoveItem_Down)
     bpy.utils.unregister_class(LIST_OT_MovetoTop)
