@@ -42,7 +42,7 @@ class LIST_OT_AutogeneratePrefix(bpy.types.Operator):
     def execute(self, context): 
         prefs = fetch_user_preferences()
         selected_item = prefs.my_list[prefs.list_index]
-        selected_item.prefix = generate_prefix(Path(selected_item.filepath).stem)
+        selected_item.prefix = generate_prefix(selected_item.name)
 
         return{'FINISHED'}
 
