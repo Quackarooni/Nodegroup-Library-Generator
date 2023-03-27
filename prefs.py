@@ -9,12 +9,14 @@ def clamp(value, lower, upper):
 def fetch_user_preferences():
     return bpy.context.preferences.addons[__package__].preferences
 
+def generate_prefix(name):
+    return "".join(chars[0] for chars in name.replace(" ", "_").split("_")[:10] if chars[0].isupper())
+
 class ListItem(bpy.types.PropertyGroup):
     name: StringProperty(name="Name", description="A name for this item", default="Untitled") 
     filepath: StringProperty(name="Filepath", description="", default="")
     prefix: StringProperty(name="Prefix", description="", default="")
     is_enabled: BoolProperty(name="", description="", default=True)
-
 
 class MY_UL_List(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index): 
@@ -30,6 +32,17 @@ class MY_UL_List(bpy.types.UIList):
             layout.alignment = 'CENTER' 
             layout.label(text="", icon = custom_icon) 
             # ( inside register() ) bpy.utils.register_class(MY_UL_List)
+
+class LIST_OT_AutogeneratePrefix(bpy.types.Operator):
+    bl_idname = "my_list.autogenerate_prefix" 
+    bl_label = "Auto-Generate Prefix" 
+
+    def execute(self, context): 
+        prefs = fetch_user_preferences()
+        selected_item = prefs.my_list[prefs.list_index]
+        selected_item.prefix = generate_prefix(Path(selected_item.filepath).stem)
+
+        return{'FINISHED'}
 
 class LIST_OT_NewItem(bpy.types.Operator, ImportHelper):
     bl_idname = "my_list.new_item" 
@@ -62,6 +75,7 @@ class LIST_OT_NewItem(bpy.types.Operator, ImportHelper):
         item = my_list[intended_index]
         item.name = filepath.stem
         item.filepath = str(filepath)
+        item.prefix = generate_prefix(filepath.stem)
 
         prefs.list_index = intended_index
         return{'FINISHED'}
@@ -95,6 +109,7 @@ class LIST_OT_UpdateFilepath(bpy.types.Operator, ImportHelper):
 
         item.name = filepath.stem
         item.filepath = str(filepath)
+        item.prefix = generate_prefix(filepath.stem)
         return{'FINISHED'}
 
 class LIST_OT_DeleteItem(bpy.types.Operator):
@@ -220,7 +235,7 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
 
             row = col.row()
             row.prop(item, "prefix")
-            row.operator("my_list.update_filepath", text="", icon='EVENT_A')
+            row.operator("my_list.autogenerate_prefix", text="", icon='EVENT_A')
             row.separator(factor = 1.35)
 
             row = col.row()
@@ -236,6 +251,7 @@ def register():
     bpy.utils.register_class(LIST_OT_MoveItem_Up)
     bpy.utils.register_class(LIST_OT_MoveItem_Down)
     bpy.utils.register_class(LIST_OT_UpdateFilepath)
+    bpy.utils.register_class(LIST_OT_AutogeneratePrefix)
 
     #bpy.types.Scene.my_list = CollectionProperty(type = ListItem) 
     #bpy.types.Scene.list_index = IntProperty(name = "Index for my_list", default = 0)
@@ -249,6 +265,7 @@ def unregister():
     bpy.utils.unregister_class(LIST_OT_MoveItem_Up)
     bpy.utils.unregister_class(LIST_OT_MoveItem_Down)
     bpy.utils.unregister_class(LIST_OT_UpdateFilepath)
+    bpy.utils.unregister_class(LIST_OT_AutogeneratePrefix)
 
     #del bpy.types.Scene.my_list
     #del bpy.types.Scene.list_index
