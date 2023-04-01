@@ -446,10 +446,6 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
             row.operator("nodegroup_library.autogenerate_prefix", text="", icon='EVENT_A')
             row.separator(factor = 1.35)
 
-            row = col.row()
-            row.prop(item, "is_enabled")
-            row.separator(factor = 1.35)
-
 def register():
     bpy.utils.register_class(BlendFileEntry)
     bpy.utils.register_class(NodegroupLibraryPreferences)
