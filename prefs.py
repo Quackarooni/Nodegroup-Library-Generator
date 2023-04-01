@@ -120,8 +120,8 @@ class NODE_OT_NGLibrary_UpdateFilepath(bpy.types.Operator, ImportHelper):
         item.prefix = generate_prefix(filepath.stem)
         return{'FINISHED'}
 
-class NODE_OT_NGLibrary_DeleteEntry(bpy.types.Operator):
-    bl_idname = "nodegroup_library.delete_entry" 
+class NODE_OT_NGLibrary_RemoveEntry(bpy.types.Operator):
+    bl_idname = "nodegroup_library.remove_entry" 
     bl_label = "Remove Blend File Entry"
     bl_description = "Remove currently selected .blend file entry from library" 
 
@@ -139,8 +139,8 @@ class NODE_OT_NGLibrary_DeleteEntry(bpy.types.Operator):
         prefs.current_list_index = clamp(index - 1, lower=0, upper=len(my_list) - 1)
         return{'FINISHED'}
 
-class NODE_OT_NGLibrary_DeleteAllEntries(bpy.types.Operator):
-    bl_idname = "nodegroup_library.delete_all_entries" 
+class NODE_OT_NGLibrary_RemoveAllEntries(bpy.types.Operator):
+    bl_idname = "nodegroup_library.remove_all_entries" 
     bl_label = "This cannot be undone, are you sure?"
     bl_description = "Removes all .blend file entries from list"
 
@@ -369,7 +369,7 @@ class NODE_MT_NGLibrary_UIList_BATCH_OPS(bpy.types.Menu):
         
         layout.separator()
         layout.operator("nodegroup_library.sort_all_entries", text="Sort All by Name", icon='SORTALPHA')
-        layout.operator("nodegroup_library.delete_all_entries", text="Delete All Entries", icon='X')
+        layout.operator("nodegroup_library.remove_all_entries", text="Remove All Entries", icon='X')
         return
 
 class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
@@ -416,7 +416,7 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
 
         col = row.column(align=True)
         col.operator("nodegroup_library.new_entry", text="", icon='ADD')
-        col.operator("nodegroup_library.delete_entry", text="", icon='REMOVE')
+        col.operator("nodegroup_library.remove_entry", text="", icon='REMOVE')
 
         col.separator(factor = 1)
         col.menu("NODE_MT_NGLibrary_UIList_BATCH_OPS", text="", icon='DOWNARROW_HLT')
@@ -455,8 +455,8 @@ def register():
     bpy.utils.register_class(NodegroupLibraryPreferences)
     bpy.utils.register_class(NODEGROUP_LIBRARY_UL_UIList)
     bpy.utils.register_class(NODE_OT_NGLibrary_NewEntry)
-    bpy.utils.register_class(NODE_OT_NGLibrary_DeleteEntry)
-    bpy.utils.register_class(NODE_OT_NGLibrary_DeleteAllEntries)
+    bpy.utils.register_class(NODE_OT_NGLibrary_RemoveEntry)
+    bpy.utils.register_class(NODE_OT_NGLibrary_RemoveAllEntries)
     bpy.utils.register_class(NODE_OT_NGLibrary_SortAllIEntries)
     bpy.utils.register_class(NODE_OT_NGLibrary_MoveEntry_Up)
     bpy.utils.register_class(NODE_OT_NGLibrary_MoveEntry_Down)
@@ -474,8 +474,8 @@ def unregister():
     bpy.utils.unregister_class(NodegroupLibraryPreferences)
     bpy.utils.unregister_class(NODEGROUP_LIBRARY_UL_UIList)
     bpy.utils.unregister_class(NODE_OT_NGLibrary_NewEntry)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_DeleteEntry)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_DeleteAllEntries)
+    bpy.utils.unregister_class(NODE_OT_NGLibrary_RemoveEntry)
+    bpy.utils.unregister_class(NODE_OT_NGLibrary_RemoveAllEntries)
     bpy.utils.unregister_class(NODE_OT_NGLibrary_SortAllIEntries)
     bpy.utils.unregister_class(NODE_OT_NGLibrary_MoveEntry_Up)
     bpy.utils.unregister_class(NODE_OT_NGLibrary_MoveEntry_Down)
