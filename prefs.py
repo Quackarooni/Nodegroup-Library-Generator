@@ -11,7 +11,13 @@ def fetch_user_preferences():
     return bpy.context.preferences.addons[__package__].preferences
 
 def generate_prefix(name):
-    return "".join(chars[0] for chars in name.replace(" ", "_").split("_")[:10] if chars[0].isupper())
+    output = ""
+
+    for chars in name.replace("_", " ").split(" "):
+        if len(chars) > 0 and chars[0].isupper():
+            output = f"{output}{chars[0]}"
+
+    return output.replace(" ", "")[:10]
 
 class BlendFileEntry(bpy.types.PropertyGroup):
     name: StringProperty(name="Name", description="The name used for generating the menu of this .blend file entry", default="Untitled") 
