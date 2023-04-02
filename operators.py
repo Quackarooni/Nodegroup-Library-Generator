@@ -4,10 +4,12 @@ from bpy.types import Operator
 from bpy.props import StringProperty, FloatProperty
 from pathlib import Path
 
+
 def fetch_user_prefs(prop_name=None):
     ADD_ON_PATH = Path(__file__).parent.name
     prefs = bpy.context.preferences.addons[ADD_ON_PATH].preferences
     return prefs if (prop_name is None) else getattr(prefs, prop_name)
+
 
 class NodegroupLibrary_BaseMenu(bpy.types.Menu):
     tree_type: StringProperty()
@@ -25,6 +27,7 @@ class NodegroupLibrary_BaseMenu(bpy.types.Menu):
             self.draw_expanded(context)
         else:
             self.draw_compact(context)
+
 
 class NODE_OT_NODEGROUP_LIBRARY_append_group(Operator):
     bl_idname = "nodegroup_library.append_group"
@@ -59,10 +62,9 @@ class NODE_OT_NODEGROUP_LIBRARY_append_group(Operator):
                     node.node_tree = bpy.data.node_groups[unduped_name]
         for group in added_groups:
             split_name, *_ = re.split("\.\d+$", group.name)
-        
+
             if len(_) > 0 and split_name in bpy.data.node_groups:
                 bpy.data.node_groups.remove(group)
-
 
     def execute(self, context):
         if self.group_name not in bpy.data.node_groups:
@@ -81,18 +83,21 @@ class NODE_OT_NODEGROUP_LIBRARY_append_group(Operator):
         context.active_node.width = self.width
         bpy.ops.node.translate_attach_remove_on_cancel("INVOKE_DEFAULT")
         return {"FINISHED"}
-    
+
     def invoke(self, context, event):
         self.store_mouse_cursor(context, event)
         return self.execute(context)
+
 
 classes = (
     NODE_OT_NODEGROUP_LIBRARY_append_group,
 )
 
+
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+
 
 def unregister():
     for cls in classes:

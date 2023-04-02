@@ -3,11 +3,14 @@ from bpy.props import EnumProperty, BoolProperty, StringProperty, CollectionProp
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from pathlib import Path
 
+
 def clamp(value, lower, upper):
     return lower if value < lower else upper if value > upper else value
 
+
 def fetch_user_preferences():
     return bpy.context.preferences.addons[__package__].preferences
+
 
 def generate_prefix(name):
     output = ""
@@ -18,32 +21,35 @@ def generate_prefix(name):
 
     return output.replace(" ", "")[:10]
 
+
 class BlendFileEntry(bpy.types.PropertyGroup):
-    name: StringProperty(name="Name", description="The name used for generating the menu of this .blend file entry", default="Untitled") 
+    name: StringProperty(name="Name", description="The name used for generating the menu of this .blend file entry", default="Untitled")
     filepath: StringProperty(name="Filepath", description="The filepath pointing to where the .blend file is located", default="")
     prefix: StringProperty(name="Prefix", description="The prefix identifying all nodegroups from this file. \n(This is for avoiding conflicts with similarly named nodegroups from different files)", default="")
     is_enabled: BoolProperty(name="", description="", default=True)
 
+
 class NODEGROUP_LIBRARY_UL_UIList(bpy.types.UIList):
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index): 
-        custom_icon = 'BLENDER' 
-        # Make sure your code supports all 3 layout types 
-        if self.layout_type in {'DEFAULT', 'COMPACT'}: 
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        custom_icon = 'BLENDER'
+        # Make sure your code supports all 3 layout types
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
             split = layout.split(factor=0.75)
-            split.prop(item, "name", icon = custom_icon, emboss=False, text="")
+            split.prop(item, "name", icon=custom_icon, emboss=False, text="")
             icon = 'CHECKBOX_HLT' if item.is_enabled else 'CHECKBOX_DEHLT'
             split.prop(item, "prefix", emboss=False)
             layout.prop(item, "is_enabled", text="", emboss=False, icon=icon)
-        elif self.layout_type in {'GRID'}: 
-            layout.alignment = 'CENTER' 
-            layout.label(text="", icon = custom_icon) 
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label(text="", icon=custom_icon)
+
 
 class NODE_OT_NGLibrary_AutogenerateName(bpy.types.Operator):
-    bl_idname = "nodegroup_library.autogenerate_name" 
+    bl_idname = "nodegroup_library.autogenerate_name"
     bl_label = "Auto-Generate Name"
-    bl_description = "Generate entry name based from current filepath" 
+    bl_description = "Generate entry name based from current filepath"
 
-    def execute(self, context): 
+    def execute(self, context):
         prefs = fetch_user_preferences()
         selected_item = prefs.my_list[prefs.current_list_index]
         selected_item.name = Path(selected_item.filepath).stem
@@ -52,46 +58,47 @@ class NODE_OT_NGLibrary_AutogenerateName(bpy.types.Operator):
 
 
 class NODE_OT_NGLibrary_AutogeneratePrefix(bpy.types.Operator):
-    bl_idname = "nodegroup_library.autogenerate_prefix" 
+    bl_idname = "nodegroup_library.autogenerate_prefix"
     bl_label = "Auto-Generate Prefix"
-    bl_description = "Generate entry prefix based from current name" 
+    bl_description = "Generate entry prefix based from current name"
 
-    def execute(self, context): 
+    def execute(self, context):
         prefs = fetch_user_preferences()
         selected_item = prefs.my_list[prefs.current_list_index]
         selected_item.prefix = generate_prefix(selected_item.name)
 
         return{'FINISHED'}
 
+
 class NODE_OT_NGLibrary_NewEntry(bpy.types.Operator, ImportHelper):
-    bl_idname = "nodegroup_library.new_entry" 
+    bl_idname = "nodegroup_library.new_entry"
     bl_label = "Add Blend File Entry"
-    bl_description = "Add a new .blend file entry to library" 
-    
+    bl_description = "Add a new .blend file entry to library"
+
     filename_ext = '.blend'
     filter_glob: StringProperty(default='*.blend', options={'HIDDEN'})
 
-    def execute(self, context): 
+    def execute(self, context):
         filepath = Path(self.properties.filepath)
 
         prefs = fetch_user_preferences()
-        my_list = prefs.my_list 
+        my_list = prefs.my_list
 
         if not filepath.name.endswith(".blend"):
             self.report({'WARNING'}, f"Specified path is not a .blend file.")
-            return {'CANCELLED'}    
+            return {'CANCELLED'}
 
         if not filepath.exists():
             self.report({'WARNING'}, f"Specified path does not exist.")
-            return {'CANCELLED'}            
+            return {'CANCELLED'}
 
         elif str(filepath) in [item.filepath for item in my_list]:
             self.report({'WARNING'}, f"{filepath} \n Selected blend file is already in list.")
             return {'CANCELLED'}
 
         my_list.add()
-        index = prefs.current_list_index 
-        max_index = len(my_list) - 1 
+        index = prefs.current_list_index
+        max_index = len(my_list) - 1
 
         intended_index = clamp(index + 1, lower=0, upper=max_index)
         my_list.move(max_index, intended_index)
@@ -106,33 +113,34 @@ class NODE_OT_NGLibrary_NewEntry(bpy.types.Operator, ImportHelper):
         prefs.current_list_index = intended_index
         return{'FINISHED'}
 
+
 class NODE_OT_NGLibrary_UpdateFilepath(bpy.types.Operator, ImportHelper):
-    bl_idname = "nodegroup_library.update_filepath" 
+    bl_idname = "nodegroup_library.update_filepath"
     bl_label = "Update Filepath"
-    bl_description = "Update the filepath of currently selected .blend file entry" 
-    
+    bl_description = "Update the filepath of currently selected .blend file entry"
+
     filename_ext = '.blend'
     filter_glob: StringProperty(default='*.blend', options={'HIDDEN'})
 
-    def execute(self, context): 
+    def execute(self, context):
         filepath = Path(self.properties.filepath)
 
         prefs = fetch_user_preferences()
-        my_list = prefs.my_list 
-        index = prefs.current_list_index 
+        my_list = prefs.my_list
+        index = prefs.current_list_index
         item = my_list[index]
 
         if not filepath.name.endswith(".blend"):
             self.report({'WARNING'}, f"Specified path is not a .blend file.")
-            return {'CANCELLED'}    
+            return {'CANCELLED'}
 
         if not filepath.exists():
             self.report({'WARNING'}, f"Specified path does not exist.")
-            return {'CANCELLED'}            
+            return {'CANCELLED'}
 
         if str(filepath) == item.filepath:
             self.report({'WARNING'}, f"Specified path is already the current filepath.")
-            return {'CANCELLED'}            
+            return {'CANCELLED'}
 
         elif str(filepath) in [item.filepath for item in my_list]:
             self.report({'WARNING'}, f"{filepath} \n Selected blend file is already in list.")
@@ -145,79 +153,83 @@ class NODE_OT_NGLibrary_UpdateFilepath(bpy.types.Operator, ImportHelper):
 
         return{'FINISHED'}
 
-class NODE_OT_NGLibrary_RemoveEntry(bpy.types.Operator):
-    bl_idname = "nodegroup_library.remove_entry" 
-    bl_label = "Remove Blend File Entry"
-    bl_description = "Remove currently selected .blend file entry from library" 
 
-    @classmethod 
-    def poll(cls, context): 
+class NODE_OT_NGLibrary_RemoveEntry(bpy.types.Operator):
+    bl_idname = "nodegroup_library.remove_entry"
+    bl_label = "Remove Blend File Entry"
+    bl_description = "Remove currently selected .blend file entry from library"
+
+    @classmethod
+    def poll(cls, context):
         prefs = fetch_user_preferences()
-        return prefs.my_list 
-    
-    def execute(self, context): 
+        return prefs.my_list
+
+    def execute(self, context):
         prefs = fetch_user_preferences()
-        my_list = prefs.my_list 
-        index = prefs.current_list_index 
-        
-        my_list.remove(index) 
+        my_list = prefs.my_list
+        index = prefs.current_list_index
+
+        my_list.remove(index)
         prefs.current_list_index = clamp(index - 1, lower=0, upper=len(my_list) - 1)
         return{'FINISHED'}
 
+
 class NODE_OT_NGLibrary_RemoveAllEntries(bpy.types.Operator):
-    bl_idname = "nodegroup_library.remove_all_entries" 
+    bl_idname = "nodegroup_library.remove_all_entries"
     bl_label = "This cannot be undone, are you sure?"
     bl_description = "Removes all .blend file entries from list"
 
-    @classmethod 
-    def poll(cls, context): 
+    @classmethod
+    def poll(cls, context):
         prefs = fetch_user_preferences()
-        return prefs.my_list 
-    
-    def execute(self, context): 
+        return prefs.my_list
+
+    def execute(self, context):
         prefs = fetch_user_preferences()
-        my_list = prefs.my_list 
-        
-        my_list.clear() 
+        my_list = prefs.my_list
+
+        my_list.clear()
         prefs.current_list_index = 0
         return{'FINISHED'}
-    
+
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
 
+
 class NODE_OT_NGLibrary_SortAllIEntries(bpy.types.Operator):
-    bl_idname = "nodegroup_library.sort_all_entries" 
-    bl_label = "This cannot be undone, are you sure?" #Label for confirmation menu
+    bl_idname = "nodegroup_library.sort_all_entries"
+    bl_label = "This cannot be undone, are you sure?"  # Label for confirmation menu
     bl_description = "Sorts all .blend file entries by name in alphabetical order"
 
-    @classmethod 
-    def poll(cls, context): 
+    @classmethod
+    def poll(cls, context):
         prefs = fetch_user_preferences()
         return len(prefs.my_list) > 1
-    
-    def execute(self, context): 
+
+    def execute(self, context):
         prefs = fetch_user_preferences()
-        my_list = prefs.my_list 
+        my_list = prefs.my_list
 
         attrs = ('name', 'filepath', 'prefix', 'is_enabled')
-        sorted_list = tuple(sorted(my_list, key=lambda x:x.name.upper()))
+        sorted_list = tuple(sorted(my_list, key=lambda x: x.name.upper()))
 
-        if all(a == b for a,b in zip(my_list, sorted_list)):
+        if all(a == b for a, b in zip(my_list, sorted_list)):
             self.report({'INFO'}, f"List is already sorted")
             return{'FINISHED'}
-        
+
         sorted_data = [(item.name, item.filepath, item.prefix, item.is_enabled) for item in sorted_list]
         my_list.clear()
-        
+
         for data in sorted_data:
             entry = my_list.add()
             for attr, value in zip(attrs, data):
                 setattr(entry, attr, value)
 
         return{'FINISHED'}
-    
+
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
+
 
 class NODE_OT_NGLibrary_MoveEntry_Up(bpy.types.Operator):
     bl_idname = "nodegroup_library.move_entry_up"
@@ -239,6 +251,7 @@ class NODE_OT_NGLibrary_MoveEntry_Up(bpy.types.Operator):
         prefs.current_list_index = clamp(neighbor_index, lower=0, upper=len(my_list) - 1)
         return{'FINISHED'}
 
+
 class NODE_OT_NGLibrary_MoveEntry_Down(bpy.types.Operator):
     bl_idname = "nodegroup_library.move_entry_down"
     bl_label = ""
@@ -258,6 +271,7 @@ class NODE_OT_NGLibrary_MoveEntry_Down(bpy.types.Operator):
         my_list.move(neighbor_index, index)
         prefs.current_list_index = clamp(neighbor_index, lower=0, upper=len(my_list) - 1)
         return{'FINISHED'}
+
 
 class NODE_OT_NGLibrary_MoveEntry_toTop(bpy.types.Operator):
     bl_idname = "nodegroup_library.move_entry_to_top"
@@ -280,6 +294,7 @@ class NODE_OT_NGLibrary_MoveEntry_toTop(bpy.types.Operator):
         prefs.current_list_index = clamp(target_index, lower=0, upper=max_index)
         return{'FINISHED'}
 
+
 class NODE_OT_NGLibrary_MoveEntry_toBottom(bpy.types.Operator):
     bl_idname = "nodegroup_library.move_entry_to_bottom"
     bl_label = ""
@@ -295,20 +310,21 @@ class NODE_OT_NGLibrary_MoveEntry_toBottom(bpy.types.Operator):
         my_list = prefs.my_list
         index = prefs.current_list_index
         max_index = len(my_list) - 1
-        target_index = max_index 
+        target_index = max_index
 
         my_list.move(index, target_index)
         prefs.current_list_index = clamp(target_index, lower=0, upper=max_index)
         return{'FINISHED'}
+
 
 class NODE_OT_NGLibrary_ToggleAllEntries(bpy.types.Operator):
     bl_idname = "nodegroup_library.toggle_all_entries"
     bl_label = ""
 
     mode: EnumProperty(name="UI Mode", items=(
-            ("ENABLE", "Enable", "Enables all .blend file entries"),
-            ("DISABLE", "Disable", "Disable all .blend file entries"),
-        ),)
+        ("ENABLE", "Enable", "Enables all .blend file entries"),
+        ("DISABLE", "Disable", "Disable all .blend file entries"),
+    ),)
 
     @classmethod
     def description(cls, context, props):
@@ -329,15 +345,16 @@ class NODE_OT_NGLibrary_ToggleAllEntries(bpy.types.Operator):
 
         return{'FINISHED'}
 
+
 class NODE_OT_NGLibrary_ResetEntryInfo(bpy.types.Operator):
     bl_idname = "nodegroup_library.reset_entry_info"
     bl_label = "Reset Entry Info"
 
     mode: EnumProperty(name="Mode", items=(
-            ("NAMES", "Names", "Resets all names"),
-            ("PREFIXES", "Prefixes", "Resets all prefixes"),
-            ("BOTH", "Both", "Reset both"),
-        ),)
+        ("NAMES", "Names", "Resets all names"),
+        ("PREFIXES", "Prefixes", "Resets all prefixes"),
+        ("BOTH", "Both", "Reset both"),
+    ),)
 
     @classmethod
     def description(cls, context, props):
@@ -370,6 +387,7 @@ class NODE_OT_NGLibrary_ResetEntryInfo(bpy.types.Operator):
 
         return{'FINISHED'}
 
+
 class NODE_MT_NGLibrary_UIList_BATCH_OPS(bpy.types.Menu):
     bl_label = "Batch Operations"
     bl_idname = "NODE_MT_NGLibrary_UIList_BATCH_OPS"
@@ -387,25 +405,26 @@ class NODE_MT_NGLibrary_UIList_BATCH_OPS(bpy.types.Menu):
         layout.operator("nodegroup_library.reset_entry_info", text="Reset All Names").mode = "NAMES"
         layout.operator("nodegroup_library.reset_entry_info", text="Reset All Prefixes").mode = "PREFIXES"
         layout.operator("nodegroup_library.reset_entry_info", text="Reset Both").mode = "BOTH"
-        
+
         layout.separator()
         layout.operator("nodegroup_library.move_entry_to_top", text="Reorder to Top", icon='TRIA_UP_BAR')
         layout.operator("nodegroup_library.move_entry_to_bottom", text="Reorder to Bottom", icon='TRIA_DOWN_BAR')
-        
+
         layout.separator()
         layout.operator("nodegroup_library.sort_all_entries", text="Sort All by Name", icon='SORTALPHA')
         layout.operator("nodegroup_library.remove_all_entries", text="Remove All Entries", icon='X')
         return
 
+
 class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
-    my_list: CollectionProperty(type = BlendFileEntry) 
-    current_list_index: IntProperty(name = "", description="Currently selected .blend file entry", default = 0)
-    
-    override_entry_info: BoolProperty(name='Override Name and Prefix', 
-        description='When enabled, name and prefix are regenerated from updated filepath',    
-        default=True)
+    my_list: CollectionProperty(type=BlendFileEntry)
+    current_list_index: IntProperty(name="", description="Currently selected .blend file entry", default=0)
+
+    override_entry_info: BoolProperty(name='Override Name and Prefix',
+                                      description='When enabled, name and prefix are regenerated from updated filepath',
+                                      default=True)
 
     enable_parent_menu: BoolProperty(
         name='Enable "User Library" Menu',
@@ -437,7 +456,7 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
 
         if self.ui_mode == 'EXPANDED':
             col.prop(self, "hide_empty_headers")
-        
+
         col.separator(factor=1)
         col.label(text="User Library:")
         row = col.row()
@@ -447,39 +466,39 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
         col.operator("nodegroup_library.new_entry", text="", icon='ADD')
         col.operator("nodegroup_library.remove_entry", text="", icon='REMOVE')
 
-        col.separator(factor = 1)
+        col.separator(factor=1)
         col.menu("NODE_MT_NGLibrary_UIList_BATCH_OPS", text="", icon='DOWNARROW_HLT')
 
-        col.separator(factor = 1)
+        col.separator(factor=1)
         col.operator("nodegroup_library.move_entry_up", text="", icon='TRIA_UP')
         col.operator("nodegroup_library.move_entry_down", text="", icon='TRIA_DOWN')
-        
 
-        if self.current_list_index >= 0 and self.my_list: 
-            item = self.my_list[self.current_list_index] 
+        if self.current_list_index >= 0 and self.my_list:
+            item = self.my_list[self.current_list_index]
             col = layout.column()
             col.use_property_split = True
 
             row = col.row(align=True)
-            row.prop(item, "name") 
+            row.prop(item, "name")
             row.operator("nodegroup_library.autogenerate_name", text="", icon='EVENT_A')
-            row.separator(factor = 1.35)
+            row.separator(factor=1.35)
 
             row = col.row(align=True)
             row.prop(item, "filepath")
             row.operator("nodegroup_library.update_filepath", text="", icon='FILEBROWSER')
-            row.separator(factor = 1.35)
-            
-            col.separator(factor = 0.15)
+            row.separator(factor=1.35)
+
+            col.separator(factor=0.15)
             row = col.row(align=True)
-            row.separator(factor = 2)
+            row.separator(factor=2)
             row.prop(self, "override_entry_info")
-            col.separator(factor = 0.35)
+            col.separator(factor=0.35)
 
             row = col.row(align=True)
             row.prop(item, "prefix")
             row.operator("nodegroup_library.autogenerate_prefix", text="", icon='EVENT_A')
-            row.separator(factor = 1.35)
+            row.separator(factor=1.35)
+
 
 def register():
     bpy.utils.register_class(BlendFileEntry)
@@ -499,6 +518,7 @@ def register():
     bpy.utils.register_class(NODE_OT_NGLibrary_ToggleAllEntries)
     bpy.utils.register_class(NODE_OT_NGLibrary_ResetEntryInfo)
     bpy.utils.register_class(NODE_MT_NGLibrary_UIList_BATCH_OPS)
+
 
 def unregister():
     bpy.utils.unregister_class(BlendFileEntry)
