@@ -2,6 +2,7 @@ import bpy
 from bpy.props import EnumProperty, BoolProperty, StringProperty, CollectionProperty, IntProperty
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from pathlib import Path
+from . import prefs_handler
 
 def clamp(value, lower, upper):
     return lower if value < lower else upper if value > upper else value
@@ -109,19 +110,16 @@ class NODE_OT_NGLibrary_NewEntry(bpy.types.Operator, ImportHelper):
             self.report({'WARNING'}, f"{filepath} \n Selected blend file is already in list.")
             return {'CANCELLED'}
 
-        my_list.add()
+        item = my_list.add()
         index = prefs.current_list_index
         max_index = len(my_list) - 1
 
         intended_index = clamp(index + 1, lower=0, upper=max_index)
         my_list.move(max_index, intended_index)
 
-        item = my_list[intended_index]
+        item.name = filepath.stem
         item.filepath = str(filepath)
-
-        if prefs.override_entry_info:
-            item.name = filepath.stem
-            item.prefix = generate_prefix(filepath.stem)
+        item.prefix = generate_prefix(filepath.stem)
 
         prefs.current_list_index = intended_index
         return{'FINISHED'}
@@ -435,9 +433,10 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
     my_list: CollectionProperty(type=BlendFileEntry)
     current_list_index: IntProperty(name="", description="Currently selected .blend file entry", default=0)
 
-    override_entry_info: BoolProperty(name='Override Name and Prefix',
-                                      description='When enabled, name and prefix are regenerated from updated filepath',
-                                      default=True)
+    override_entry_info: BoolProperty(
+        name='Override Name and Prefix',
+        description='When enabled, name and prefix are regenerated from updated filepath',
+        default=True)
 
     enable_parent_menu: BoolProperty(
         name='Enable "User Library" Menu',
@@ -532,22 +531,29 @@ def register():
     bpy.utils.register_class(NODE_OT_NGLibrary_ResetEntryInfo)
     bpy.utils.register_class(NODE_MT_NGLibrary_UIList_BATCH_OPS)
 
+    prefs_handler.load_pref_cache()
+    setattr(prefs_handler, "on_register", False)
+
 
 def unregister():
-    bpy.utils.unregister_class(BlendFileEntry)
-    bpy.utils.unregister_class(NodegroupLibraryPreferences)
-    bpy.utils.unregister_class(NODEGROUP_LIBRARY_UL_UIList)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_NewEntry)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_RemoveEntry)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_RemoveAllEntries)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_SortAllIEntries)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_MoveEntry_Up)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_MoveEntry_Down)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_MoveEntry_toTop)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_MoveEntry_toBottom)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_UpdateFilepath)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_AutogenerateName)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_AutogeneratePrefix)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_ToggleAllEntries)
-    bpy.utils.unregister_class(NODE_OT_NGLibrary_ResetEntryInfo)
-    bpy.utils.unregister_class(NODE_MT_NGLibrary_UIList_BATCH_OPS)
+    try:
+        prefs_handler.update_pref_cache()
+        setattr(prefs_handler, "on_register", True)
+    finally:
+        bpy.utils.unregister_class(BlendFileEntry)
+        bpy.utils.unregister_class(NodegroupLibraryPreferences)
+        bpy.utils.unregister_class(NODEGROUP_LIBRARY_UL_UIList)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_NewEntry)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_RemoveEntry)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_RemoveAllEntries)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_SortAllIEntries)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_MoveEntry_Up)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_MoveEntry_Down)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_MoveEntry_toTop)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_MoveEntry_toBottom)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_UpdateFilepath)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_AutogenerateName)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_AutogeneratePrefix)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_ToggleAllEntries)
+        bpy.utils.unregister_class(NODE_OT_NGLibrary_ResetEntryInfo)
+        bpy.utils.unregister_class(NODE_MT_NGLibrary_UIList_BATCH_OPS)
