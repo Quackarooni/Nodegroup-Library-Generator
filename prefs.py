@@ -3,7 +3,6 @@ from bpy.props import EnumProperty, BoolProperty, StringProperty, CollectionProp
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from pathlib import Path
 
-
 def clamp(value, lower, upper):
     return lower if value < lower else upper if value > upper else value
 
