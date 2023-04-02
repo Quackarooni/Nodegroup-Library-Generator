@@ -78,8 +78,16 @@ class NODE_OT_NGLibrary_NewEntry(bpy.types.Operator, ImportHelper):
         prefs = fetch_user_preferences()
         my_list = prefs.my_list 
 
-        if str(filepath) in [item.filepath for item in my_list]:
-            self.report({'WARNING'}, f"{filepath} \n File is already in list.")
+        if not filepath.name.endswith(".blend"):
+            self.report({'WARNING'}, f"Specified path is not a .blend file.")
+            return {'CANCELLED'}    
+
+        if not filepath.exists():
+            self.report({'WARNING'}, f"Specified path does not exist.")
+            return {'CANCELLED'}            
+
+        elif str(filepath) in [item.filepath for item in my_list]:
+            self.report({'WARNING'}, f"{filepath} \n Selected blend file is already in list.")
             return {'CANCELLED'}
 
         my_list.add()
@@ -113,12 +121,20 @@ class NODE_OT_NGLibrary_UpdateFilepath(bpy.types.Operator, ImportHelper):
         index = prefs.current_list_index 
         item = my_list[index]
 
+        if not filepath.name.endswith(".blend"):
+            self.report({'WARNING'}, f"Specified path is not a .blend file.")
+            return {'CANCELLED'}    
+
+        if not filepath.exists():
+            self.report({'WARNING'}, f"Specified path does not exist.")
+            return {'CANCELLED'}            
+
         if str(filepath) == item.filepath:
-            self.report({'WARNING'}, f"Same filepath was selected.")
+            self.report({'WARNING'}, f"Specified path is already the current filepath.")
             return {'CANCELLED'}            
 
         elif str(filepath) in [item.filepath for item in my_list]:
-            self.report({'WARNING'}, f"{filepath} \n File is already in list.")
+            self.report({'WARNING'}, f"{filepath} \n Selected blend file is already in list.")
             return {'CANCELLED'}
 
         item.name = filepath.stem
