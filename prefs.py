@@ -1,4 +1,3 @@
-from faulthandler import is_enabled
 import bpy
 from bpy.props import EnumProperty, BoolProperty, StringProperty, CollectionProperty, IntProperty
 from bpy_extras.io_utils import ImportHelper, ExportHelper
