@@ -98,9 +98,11 @@ class NODE_OT_NGLibrary_NewEntry(bpy.types.Operator, ImportHelper):
         my_list.move(max_index, intended_index)
 
         item = my_list[intended_index]
-        item.name = filepath.stem
         item.filepath = str(filepath)
-        item.prefix = generate_prefix(filepath.stem)
+
+        if prefs.override_entry_info:
+            item.name = filepath.stem
+            item.prefix = generate_prefix(filepath.stem)
 
         prefs.current_list_index = intended_index
         return{'FINISHED'}
@@ -137,9 +139,11 @@ class NODE_OT_NGLibrary_UpdateFilepath(bpy.types.Operator, ImportHelper):
             self.report({'WARNING'}, f"{filepath} \n Selected blend file is already in list.")
             return {'CANCELLED'}
 
-        item.name = filepath.stem
         item.filepath = str(filepath)
-        item.prefix = generate_prefix(filepath.stem)
+        if prefs.override_entry_info:
+            item.name = filepath.stem
+            item.prefix = generate_prefix(filepath.stem)
+
         return{'FINISHED'}
 
 class NODE_OT_NGLibrary_RemoveEntry(bpy.types.Operator):
@@ -399,6 +403,10 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
 
     my_list: CollectionProperty(type = BlendFileEntry) 
     current_list_index: IntProperty(name = "", description="Currently selected .blend file entry", default = 0)
+    
+    override_entry_info: BoolProperty(name='Override Name and Prefix', 
+        description='When enabled, name and prefix are regenerated from updated filepath',    
+        default=True)
 
     enable_parent_menu: BoolProperty(
         name='Enable "User Library" Menu',
@@ -462,6 +470,12 @@ class NodegroupLibraryPreferences(bpy.types.AddonPreferences):
             row.prop(item, "filepath")
             row.operator("nodegroup_library.update_filepath", text="", icon='FILEBROWSER')
             row.separator(factor = 1.35)
+            
+            col.separator(factor = 0.15)
+            row = col.row(align=True)
+            row.separator(factor = 2)
+            row.prop(self, "override_entry_info")
+            col.separator(factor = 0.35)
 
             row = col.row(align=True)
             row.prop(item, "prefix")
