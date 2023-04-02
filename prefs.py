@@ -22,9 +22,23 @@ def generate_prefix(name):
 
 
 class BlendFileEntry(bpy.types.PropertyGroup):
-    name: StringProperty(name="Name", description="The name used for generating the menu of this .blend file entry", default="Untitled")
-    filepath: StringProperty(name="Filepath", description="The filepath pointing to where the .blend file is located", default="")
-    prefix: StringProperty(name="Prefix", description="The prefix identifying all nodegroups from this file. \n(This is for avoiding conflicts with similarly named nodegroups from different files)", default="")
+    name: StringProperty(
+        name="Name", 
+        description="The name used for generating the menu of this .blend file entry", 
+        default="Untitled")
+
+    filepath: StringProperty(
+        name="Filepath", 
+        description="The filepath pointing to where the .blend file is located", 
+        default="")
+
+    prefix: StringProperty(
+        name="Prefix", 
+        description=(
+            "The prefix identifying all nodegroups from this file."
+            "\n(This is for avoiding conflicts with similarly named nodegroups from different files)"), 
+        default="")
+
     is_enabled: BoolProperty(name="", description="", default=True)
 
 
