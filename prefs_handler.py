@@ -18,15 +18,15 @@ def load_pref_cache():
 
 def set_preference_values(filepath=None):
     prefs = fetch_user_preferences()
-    my_list = prefs.my_list
+    entry_list = prefs.entry_list
 
     with open(filepath, "r") as f:
         pref_defaults = json.loads(f.read())
 
     for key, value in pref_defaults.items():
-        if key == "my_list":
+        if key == "entry_list":
             for entry in value:
-                item = my_list.add()
+                item = entry_list.add()
                 for key, value in entry.items():
                     setattr(item, key, value)
         else:
@@ -51,7 +51,7 @@ def save_pref_cache(filepath=None):
         except TypeError:
             pass
 
-        if pref_id == "my_list":
+        if pref_id == "entry_list":
             pref_value = [{
                 "name": i.name, 
                 "prefix": i.prefix, 
